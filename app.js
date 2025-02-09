@@ -68,9 +68,13 @@ function handleFileSelection(file) {
 
     fileName.textContent = file.name;
     fileInfo.classList.remove('hidden');
-    fileInput.files = new DataTransfer().files;
-    fileInput.files = new DataTransfer().files;
-    fileInput.files.add(file);
+    
+    // Create a new DataTransfer object
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    
+    // Set the files property
+    fileInput.files = dataTransfer.files;
 }
 
 // Process Audio File
