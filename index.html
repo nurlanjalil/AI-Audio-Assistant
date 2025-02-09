@@ -3,55 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Podcast Summarizer</title>
+    <title>Azerbaijani Speech Recognition & Audio Summarizer</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🎙️ AI Podcast Summarizer</h1>
-            <p class="subtitle">Upload your audio file and get an AI-generated summary</p>
-        </header>
+        <h1>Azerbaijani Speech Recognition & Audio Summarizer</h1>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="transcribe">Azerbaijani Speech to Text</button>
+            <button class="tab-btn" data-tab="summarize">Audio Summarizer</button>
+        </div>
 
-        <main>
-            <div class="upload-container" id="dropZone">
-                <div class="upload-content">
-                    <img src="upload-icon.svg" alt="Upload" id="uploadIcon">
-                    <p>Drag and drop your audio file here or</p>
-                    <label for="fileInput" class="upload-button">Choose File</label>
-                    <input type="file" id="fileInput" accept=".mp3,.wav,.m4a" hidden>
-                    <p class="file-types">Supported formats: MP3, WAV, M4A</p>
-                </div>
-                <div id="fileInfo" class="file-info hidden">
-                    <p>Selected file: <span id="fileName"></span></p>
-                    <button id="processButton" class="process-button">Process Audio</button>
+        <div class="tab-content active" id="transcribe-content">
+            <h2>Azerbaijani Speech to Text</h2>
+            <div class="upload-container">
+                <div class="upload-methods">
+                    <div class="method-selector">
+                        <button class="method-btn active" data-method="upload">Upload Audio</button>
+                        <button class="method-btn" data-method="record">Record Voice</button>
+                    </div>
+
+                    <div class="method-content active" id="upload-content">
+                        <div class="drop-zone">
+                            <img src="upload-icon.svg" alt="Upload" class="upload-icon">
+                            <p>Drag & Drop audio file or click to upload</p>
+                            <input type="file" id="file-input" accept="audio/*" class="file-input">
+                        </div>
+                        <div class="file-info hidden">
+                            <p>Selected file: <span class="selected-file-name"></span></p>
+                            <button class="process-button">Process Audio</button>
+                        </div>
+                    </div>
+
+                    <div class="method-content" id="record-content">
+                        <div class="record-controls">
+                            <button id="start-record" class="record-btn">Start Recording</button>
+                            <button id="stop-record" class="record-btn" disabled>Stop Recording</button>
+                            <div class="recording-indicator">
+                                <span class="recording-dot"></span>
+                                <span class="recording-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="file-info hidden">
+                            <p>Recording complete</p>
+                            <button class="process-button">Process Recording</button>
+                        </div>
+                    </div>
+
+                    <div class="loading-indicator hidden">
+                        <div class="loading-spinner"></div>
+                        <p>Processing audio...</p>
+                    </div>
                 </div>
             </div>
 
-            <div id="loadingContainer" class="loading-container hidden">
-                <div class="loading-spinner"></div>
-                <p>Processing your audio file...</p>
+            <div class="result-container hidden">
+                <h3>Transcription</h3>
+                <div class="result-text" id="transcription-result"></div>
+                <button class="copy-btn" data-target="transcription-result">Copy Text</button>
+            </div>
+        </div>
+
+        <div class="tab-content" id="summarize-content">
+            <h2>Audio Summarizer</h2>
+            <div class="upload-container">
+                <div class="drop-zone">
+                    <img src="upload-icon.svg" alt="Upload" class="upload-icon">
+                    <p>Drag & Drop audio file or click to upload</p>
+                    <input type="file" id="summary-file-input" accept="audio/*" class="file-input">
+                </div>
             </div>
 
-            <div id="resultContainer" class="result-container hidden">
-                <div class="result-section">
-                    <h2>📝 Transcript</h2>
-                    <div class="content-box" id="transcriptContent"></div>
-                </div>
-                
-                <div class="result-section">
-                    <h2>✨ Summary</h2>
-                    <div class="content-box" id="summaryContent"></div>
-                </div>
-
-                <button id="newFileButton" class="new-file-button">Process Another File</button>
+            <div class="result-container">
+                <h3>Transcription</h3>
+                <div class="result-text" id="summary-transcription"></div>
+                <h3>Summary</h3>
+                <div class="result-text" id="summary-result"></div>
+                <button class="copy-btn" data-target="summary-result">Copy Summary</button>
             </div>
-        </main>
-
-        <footer>
-            <p>Powered by OpenAI Whisper and GPT-4</p>
-        </footer>
+        </div>
     </div>
 
     <script src="app.js"></script>

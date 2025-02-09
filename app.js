@@ -11,6 +11,12 @@ const ASSETS_BASE_URL = window.location.hostname === 'localhost'
 // Update image src to work both locally and on GitHub Pages
 document.getElementById('uploadIcon').src = `${ASSETS_BASE_URL}/upload-icon.svg`;
 
+// Global variables
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingTimer = null;
+let recordingStartTime = null;
+
 // DOM Elements
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
@@ -138,4 +144,241 @@ function resetUI() {
     resultContainer.classList.add('hidden');
     transcriptContent.textContent = '';
     summaryContent.textContent = '';
+}
+
+// Tab handling
+document.addEventListener('DOMContentLoaded', () => {
+    // Tab handling
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tab = button.dataset.tab;
+            
+            // Update active states
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            button.classList.add('active');
+            document.getElementById(`${tab}-content`).classList.add('active');
+        });
+    });
+
+    // Method selection handling
+    const methodButtons = document.querySelectorAll('.method-btn');
+    const methodContents = document.querySelectorAll('.method-content');
+    
+    methodButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const method = button.dataset.method;
+            
+            methodButtons.forEach(btn => btn.classList.remove('active'));
+            methodContents.forEach(content => content.classList.remove('active'));
+            
+            button.classList.add('active');
+            document.getElementById(`${method}-content`).classList.add('active');
+        });
+    });
+
+    // File upload handling
+    setupDropZone('file-input', handleAzerbaijaniTranscription);
+    setupDropZone('summary-file-input', handleAudioSummarization);
+
+    // Recording handling
+    setupRecording();
+
+    // Copy button handling
+    setupCopyButtons();
+});
+
+function setupDropZone(inputId, handleFunction) {
+    const fileInput = document.getElementById(inputId);
+    const dropZone = fileInput.closest('.drop-zone');
+    const fileInfo = dropZone.nextElementSibling;
+    const fileNameSpan = fileInfo?.querySelector('.selected-file-name');
+    const processButton = fileInfo?.querySelector('.process-button');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    ['dragleave', 'dragend'].forEach(type => {
+        dropZone.addEventListener(type, () => dropZone.classList.remove('dragover'));
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('audio/')) {
+            showFileInfo(file, fileInfo, fileNameSpan);
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files[0]) {
+            showFileInfo(fileInput.files[0], fileInfo, fileNameSpan);
+        }
+    });
+
+    if (processButton) {
+        processButton.addEventListener('click', () => {
+            const file = fileInput.files[0];
+            if (file) {
+                handleFunction(file);
+            }
+        });
+    }
+}
+
+function showFileInfo(file, fileInfo, fileNameSpan) {
+    if (fileNameSpan) {
+        fileNameSpan.textContent = file.name;
+    }
+    if (fileInfo) {
+        fileInfo.classList.remove('hidden');
+    }
+}
+
+async function handleAzerbaijaniTranscription(file) {
+    try {
+        // Show loading indicator
+        const loadingIndicator = document.querySelector('.loading-indicator');
+        const resultContainer = document.querySelector('.result-container');
+        loadingIndicator.classList.remove('hidden');
+        resultContainer.classList.add('hidden');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/transcribe-azerbaijani/', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Transcription failed');
+
+        const data = await response.json();
+        document.getElementById('transcription-result').textContent = data.transcript;
+        
+        // Hide loading, show results
+        loadingIndicator.classList.add('hidden');
+        resultContainer.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing the audio file. Please try again.');
+        document.querySelector('.loading-indicator').classList.add('hidden');
+    }
+}
+
+async function handleAudioSummarization(file) {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/summarize-audio/', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Summarization failed');
+
+        const data = await response.json();
+        document.getElementById('summary-transcription').textContent = data.transcript;
+        document.getElementById('summary-result').textContent = data.summary;
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing the audio file. Please try again.');
+    }
+}
+
+function setupRecording() {
+    const startButton = document.getElementById('start-record');
+    const stopButton = document.getElementById('stop-record');
+    const recordingTime = document.querySelector('.recording-time');
+
+    startButton.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            startRecording(stream);
+            
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            document.querySelector('.recording-dot').classList.add('recording');
+            
+            // Start timer
+            recordingStartTime = Date.now();
+            recordingTimer = setInterval(updateRecordingTime, 1000);
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            alert('Error accessing microphone. Please ensure microphone permissions are granted.');
+        }
+    });
+
+    stopButton.addEventListener('click', () => {
+        stopRecording();
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        document.querySelector('.recording-dot').classList.remove('recording');
+        clearInterval(recordingTimer);
+        recordingTime.textContent = '00:00';
+    });
+}
+
+function startRecording(stream) {
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.addEventListener('dataavailable', event => {
+        audioChunks.push(event.data);
+    });
+
+    mediaRecorder.addEventListener('stop', async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const recordingFileInfo = document.querySelector('#record-content .file-info');
+        recordingFileInfo.classList.remove('hidden');
+        
+        const processButton = recordingFileInfo.querySelector('.process-button');
+        processButton.onclick = () => handleAzerbaijaniTranscription(audioBlob);
+        
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach(track => track.stop());
+    });
+
+    mediaRecorder.start();
+}
+
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
+}
+
+function updateRecordingTime() {
+    const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+    const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    const seconds = (elapsed % 60).toString().padStart(2, '0');
+    document.querySelector('.recording-time').textContent = `${minutes}:${seconds}`;
+}
+
+function setupCopyButtons() {
+    document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const targetId = button.dataset.target;
+            const text = document.getElementById(targetId).textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        });
+    });
 } 
