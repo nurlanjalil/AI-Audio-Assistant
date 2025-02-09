@@ -15,6 +15,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let recordingTimer = null;
 let recordingStartTime = null;
+const MAX_RECORDING_TIME = 60; // 1 minute in seconds
 
 // DOM Elements
 const tabButtons = document.querySelectorAll('.tab-button');
@@ -158,6 +159,7 @@ startRecord.addEventListener('click', async () => {
         recordIndicator.classList.remove('hidden');
         startRecord.classList.add('recording');
         recordPreview.classList.add('hidden');
+        processButton.classList.add('hidden');
         
         recordingStartTime = Date.now();
         recordingTimer = setInterval(updateRecordingTime, 1000);
@@ -189,18 +191,34 @@ function handleFileSelection(file, isSummary) {
         return;
     }
 
-    // Hide upload areas immediately after file selection
-    if (isSummary) {
-        summaryFileName.textContent = file.name;
-        summaryFileInfo.classList.remove('hidden');
-        summaryDropZone.classList.add('hidden');
-    } else {
-        fileName.textContent = file.name;
-        fileInfo.classList.remove('hidden');
-        dropZone.classList.add('hidden');
-        document.querySelector('.method-selector').classList.add('hidden');
-        document.getElementById('record-content').classList.add('hidden');
-    }
+    // Create audio element to check duration
+    const audio = new Audio();
+    const objectUrl = URL.createObjectURL(file);
+    
+    audio.addEventListener('loadedmetadata', () => {
+        URL.revokeObjectURL(objectUrl);
+        
+        if (audio.duration > MAX_RECORDING_TIME) {
+            alert('Audio faylın uzunluğu 1 dəqiqədən çox ola bilməz.');
+            resetUI();
+            return;
+        }
+
+        // Continue with file selection if duration is valid
+        if (isSummary) {
+            summaryFileName.textContent = file.name;
+            summaryFileInfo.classList.remove('hidden');
+            summaryDropZone.classList.add('hidden');
+        } else {
+            fileName.textContent = file.name;
+            fileInfo.classList.remove('hidden');
+            dropZone.classList.add('hidden');
+            document.querySelector('.method-selector').classList.add('hidden');
+            document.getElementById('record-content').classList.add('hidden');
+        }
+    });
+
+    audio.src = objectUrl;
 }
 
 // Process Audio File
@@ -292,7 +310,9 @@ function startRecording(stream) {
         audioPreview.src = audioUrl;
         recordPreview.classList.remove('hidden');
         
+        // Show process button immediately after recording
         handleFileSelection(file, false);
+        processButton.classList.remove('hidden');
         
         // Stop all tracks to release the microphone
         stream.getTracks().forEach(track => track.stop());
@@ -304,6 +324,22 @@ function startRecording(stream) {
 function stopRecording() {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
+        mediaRecorder.addEventListener('stop', async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+            
+            // Create audio preview
+            const audioUrl = URL.createObjectURL(audioBlob);
+            audioPreview.src = audioUrl;
+            recordPreview.classList.remove('hidden');
+            
+            // Show process button immediately after recording
+            handleFileSelection(file, false);
+            processButton.classList.remove('hidden');
+            
+            // Stop all tracks to release the microphone
+            stream.getTracks().forEach(track => track.stop());
+        });
     }
 }
 
@@ -312,6 +348,12 @@ function updateRecordingTime() {
     const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
     const seconds = (elapsed % 60).toString().padStart(2, '0');
     recordTime.textContent = `${minutes}:${seconds}`;
+
+    // Auto-stop recording after 1 minute
+    if (elapsed >= MAX_RECORDING_TIME) {
+        stopRecord.click();
+        alert('Maksimum yazılma müddəti 1 dəqiqədir.');
+    }
 }
 
 // Reset UI
