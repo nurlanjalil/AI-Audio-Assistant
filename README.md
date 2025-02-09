@@ -1,10 +1,11 @@
-# AI Podcast Summarizer 🎙️
+# AI Audio Assistant 🎙️
 
 Convert your audio content into text and get AI-powered summaries instantly.
 
 ## Features ✨
 
 - Audio file upload (MP3, WAV, M4A)
+- Live voice recording (up to 1 minute)
 - Automatic speech-to-text transcription
 - AI-powered content summarization
 - Simple and intuitive interface
@@ -12,16 +13,20 @@ Convert your audio content into text and get AI-powered summaries instantly.
 
 ## Try It Out 🚀
 
-Visit: [AI Podcast Summarizer](https://nurlanjalil.github.io/AI-Podcast-Summarizer)
+Visit: [AI Audio Assistant](https://nurlanjalil.tech/AI-Audio-Assistant/)
 
 ## How to Use 📝
 
-1. Open the web application
-2. Upload your audio file by:
-   - Dragging and dropping it into the upload area
-   - Clicking "Choose File" to select from your device
-3. Click "Process Audio"
-4. Wait for processing (this may take a few moments)
+1. Choose your preferred method:
+   - Upload an audio file (up to 1 minute)
+   - Record your voice directly in the browser
+2. For file upload:
+   - Drag and drop your file into the upload area
+   - Or click "Fayl Seçin" to select from your device
+3. For voice recording:
+   - Click "⏺ Yazmağa başla" to start recording
+   - Click "⏹ Dayandır" when finished
+4. Click "Mətnə Çevir" to process your audio
 5. View your transcript and summary
 
 ## Supported Formats 📁
@@ -36,32 +41,6 @@ Visit: [AI Podcast Summarizer](https://nurlanjalil.github.io/AI-Podcast-Summariz
 - GPT-4 for summarization
 - FastAPI backend
 - Vanilla JavaScript frontend
-
-## Local Development 💻
-
-1. Clone the repository
-```bash
-git clone https://github.com/nurlanjalil/AI-Podcast-Summarizer.git
-```
-
-2. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-3. Set up environment variables
-```bash
-cp .env.example .env
-# Add your OpenAI API key to .env file
-```
-
-4. Run the backend
-```bash
-cd backend
-uvicorn main:app --reload
-```
-
-5. Open `index.html` in your browser
 
 ## License 📄
 
