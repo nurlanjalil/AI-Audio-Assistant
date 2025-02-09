@@ -191,34 +191,45 @@ function handleFileSelection(file, isSummary) {
         return;
     }
 
-    // Create audio element to check duration
-    const audio = new Audio();
-    const objectUrl = URL.createObjectURL(file);
-    
-    audio.addEventListener('loadedmetadata', () => {
-        URL.revokeObjectURL(objectUrl);
+    // Only check duration for uploaded files, not for recordings
+    if (!file.name.startsWith('recording.wav')) {
+        // Create audio element to check duration
+        const audio = new Audio();
+        const objectUrl = URL.createObjectURL(file);
         
-        if (audio.duration > MAX_RECORDING_TIME) {
-            alert('Audio faylın uzunluğu 1 dəqiqədən çox ola bilməz.');
-            resetUI();
-            return;
-        }
+        audio.addEventListener('loadedmetadata', () => {
+            URL.revokeObjectURL(objectUrl);
+            
+            if (audio.duration > MAX_RECORDING_TIME) {
+                alert('Audio faylın uzunluğu 1 dəqiqədən çox ola bilməz.');
+                resetUI();
+                return;
+            }
 
-        // Continue with file selection if duration is valid
-        if (isSummary) {
-            summaryFileName.textContent = file.name;
-            summaryFileInfo.classList.remove('hidden');
-            summaryDropZone.classList.add('hidden');
-        } else {
-            fileName.textContent = file.name;
-            fileInfo.classList.remove('hidden');
-            dropZone.classList.add('hidden');
-            document.querySelector('.method-selector').classList.add('hidden');
-            document.getElementById('record-content').classList.add('hidden');
-        }
-    });
+            // Continue with file selection if duration is valid
+            updateUIAfterFileSelection(file, isSummary);
+        });
 
-    audio.src = objectUrl;
+        audio.src = objectUrl;
+    } else {
+        // For recordings, directly update UI
+        updateUIAfterFileSelection(file, isSummary);
+    }
+}
+
+// Helper function to update UI after file selection
+function updateUIAfterFileSelection(file, isSummary) {
+    if (isSummary) {
+        summaryFileName.textContent = file.name;
+        summaryFileInfo.classList.remove('hidden');
+        summaryDropZone.classList.add('hidden');
+    } else {
+        fileName.textContent = file.name;
+        fileInfo.classList.remove('hidden');
+        dropZone.classList.add('hidden');
+        document.querySelector('.method-selector').classList.add('hidden');
+        document.getElementById('record-content').classList.add('hidden');
+    }
 }
 
 // Process Audio File
@@ -301,7 +312,7 @@ function startRecording(stream) {
         audioChunks.push(event.data);
     });
 
-    mediaRecorder.addEventListener('stop', async () => {
+    mediaRecorder.addEventListener('stop', () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
         
@@ -318,28 +329,12 @@ function startRecording(stream) {
         stream.getTracks().forEach(track => track.stop());
     });
 
-    mediaRecorder.start();
+    mediaRecorder.start(100); // Start recording with 100ms time slices
 }
 
 function stopRecording() {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
-        mediaRecorder.addEventListener('stop', async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
-            
-            // Create audio preview
-            const audioUrl = URL.createObjectURL(audioBlob);
-            audioPreview.src = audioUrl;
-            recordPreview.classList.remove('hidden');
-            
-            // Show process button immediately after recording
-            handleFileSelection(file, false);
-            processButton.classList.remove('hidden');
-            
-            // Stop all tracks to release the microphone
-            stream.getTracks().forEach(track => track.stop());
-        });
     }
 }
 
