@@ -1,88 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="az">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azerbaijani Speech Recognition & Audio Summarizer</title>
+    <title>AI Audio Assistenti</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <h1>Azerbaijani Speech Recognition & Audio Summarizer</h1>
-        
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="transcribe">Azerbaijani Speech to Text</button>
-            <button class="tab-btn" data-tab="summarize">Audio Summarizer</button>
+        <div class="support-button">
+            <a href="https://kofe.al/@nurlanjalil" target="_blank" class="donate-button">
+                <img src="https://kofe.al/assets/images/logo/logo.png?v=1.0" alt="Kofe.al" class="donate-logo">
+                <span>Dəstək ol</span>
+            </a>
         </div>
 
-        <div class="tab-content active" id="transcribe-content">
-            <h2>Azerbaijani Speech to Text</h2>
-            <div class="upload-container">
-                <div class="upload-methods">
-                    <div class="method-selector">
-                        <button class="method-btn active" data-method="upload">Upload Audio</button>
-                        <button class="method-btn" data-method="record">Record Voice</button>
-                    </div>
+        <header>
+            <h1>🎙️ AI Audio Assistenti</h1>
+            <p class="subtitle">Səsi mətnə çevir və ya AI ilə xülasə et</p>
+        </header>
 
-                    <div class="method-content active" id="upload-content">
-                        <div class="drop-zone">
-                            <img src="upload-icon.svg" alt="Upload" class="upload-icon">
-                            <p>Drag & Drop audio file or click to upload</p>
-                            <input type="file" id="file-input" accept="audio/*" class="file-input">
-                        </div>
-                        <div class="file-info hidden">
-                            <p>Selected file: <span class="selected-file-name"></span></p>
-                            <button class="process-button">Process Audio</button>
+        <main>
+            <div class="tabs">
+                <button class="tab-button active" data-tab="speech-to-text">
+                    <span class="tab-icon">🎯</span>
+                    Səsi mətnə çevir
+                </button>
+                <button class="tab-button" data-tab="summarizer">
+                    <span class="tab-icon">✨</span>
+                    Audio Xülasə
+                </button>
+            </div>
+
+            <div class="tab-content active" id="speech-to-text">
+                <div class="method-selector">
+                    <button class="method-button active" data-method="upload">Audio Yüklə</button>
+                    <button class="method-button" data-method="record">Səs Yaz</button>
+                </div>
+
+                <div class="method-content active" id="upload-content">
+                    <div class="upload-container" id="dropZone">
+                        <div class="upload-content">
+                            <img src="upload-icon.svg" alt="Yüklə" id="uploadIcon">
+                            <p>Audio faylı buraya sürüşdürün və ya</p>
+                            <label for="fileInput" class="upload-button">Fayl Seçin</label>
+                            <input type="file" id="fileInput" accept=".mp3,.wav,.m4a" hidden>
+                            <p class="file-types">Dəstəklənən formatlar: MP3, WAV, M4A</p>
                         </div>
                     </div>
+                </div>
 
-                    <div class="method-content" id="record-content">
+                <div class="method-content" id="record-content">
+                    <div class="record-container">
                         <div class="record-controls">
-                            <button id="start-record" class="record-btn">Start Recording</button>
-                            <button id="stop-record" class="record-btn" disabled>Stop Recording</button>
-                            <div class="recording-indicator">
-                                <span class="recording-dot"></span>
-                                <span class="recording-time">00:00</span>
+                            <button id="startRecord" class="record-button">
+                                <span class="record-icon">⏺</span>
+                                Yazmağa başla
+                            </button>
+                            <button id="stopRecord" class="record-button" disabled>
+                                <span class="record-icon">⏹</span>
+                                Dayandır
+                            </button>
+                        </div>
+                        <div class="record-status">
+                            <div class="record-indicator hidden">
+                                <span class="record-dot"></span>
+                                Yazılır: <span class="record-time">00:00</span>
                             </div>
                         </div>
-                        <div class="file-info hidden">
-                            <p>Recording complete</p>
-                            <button class="process-button">Process Recording</button>
+                        <div class="record-preview hidden">
+                            <p class="preview-title">Səs Yazını Dinlə</p>
+                            <div class="audio-player">
+                                <audio id="audioPreview" controls>
+                                    Brauzeriniz audio elementini dəstəkləmir.
+                                </audio>
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="loading-indicator hidden">
-                        <div class="loading-spinner"></div>
-                        <p>Processing audio...</p>
+                <div id="fileInfo" class="file-info hidden">
+                    <p>Seçilmiş fayl: <span id="fileName"></span></p>
+                    <button id="processButton" class="process-button">Mətnə Çevir</button>
+                </div>
+            </div>
+
+            <div class="tab-content" id="summarizer">
+                <div class="upload-container" id="summaryDropZone">
+                    <div class="upload-content">
+                        <img src="upload-icon.svg" alt="Yüklə" id="summaryUploadIcon">
+                        <p>Audio faylı buraya sürüşdürün və ya</p>
+                        <label for="summaryFileInput" class="upload-button">Fayl Seçin</label>
+                        <input type="file" id="summaryFileInput" accept=".mp3,.wav,.m4a" hidden>
+                        <p class="file-types">Dəstəklənən formatlar: MP3, WAV, M4A</p>
+                    </div>
+                    <div id="summaryFileInfo" class="file-info hidden">
+                        <p>Seçilmiş fayl: <span id="summaryFileName"></span></p>
+                        <button id="summaryProcessButton" class="process-button">Xülasə Yarat</button>
                     </div>
                 </div>
             </div>
 
-            <div class="result-container hidden">
-                <h3>Transcription</h3>
-                <div class="result-text" id="transcription-result"></div>
-                <button class="copy-btn" data-target="transcription-result">Copy Text</button>
+            <div id="loadingContainer" class="loading-container hidden">
+                <div class="loading-spinner"></div>
+                <p>Audio faylınız emal olunur...</p>
             </div>
-        </div>
 
-        <div class="tab-content" id="summarize-content">
-            <h2>Audio Summarizer</h2>
-            <div class="upload-container">
-                <div class="drop-zone">
-                    <img src="upload-icon.svg" alt="Upload" class="upload-icon">
-                    <p>Drag & Drop audio file or click to upload</p>
-                    <input type="file" id="summary-file-input" accept="audio/*" class="file-input">
+            <div id="resultContainer" class="result-container hidden">
+                <div class="result-section">
+                    <h2>📝 Mətn</h2>
+                    <div class="content-box" id="transcriptContent"></div>
+                    <button class="copy-button" data-target="transcriptContent">Mətni Kopyala</button>
                 </div>
-            </div>
+                
+                <div class="result-section summary-section hidden">
+                    <h2>✨ Xülasə</h2>
+                    <div class="content-box" id="summaryContent"></div>
+                    <button class="copy-button" data-target="summaryContent">Xülasəni Kopyala</button>
+                </div>
 
-            <div class="result-container">
-                <h3>Transcription</h3>
-                <div class="result-text" id="summary-transcription"></div>
-                <h3>Summary</h3>
-                <div class="result-text" id="summary-result"></div>
-                <button class="copy-btn" data-target="summary-result">Copy Summary</button>
+                <button id="newFileButton" class="new-file-button">Yeni Fayl Emal Et</button>
             </div>
-        </div>
+        </main>
+
+        <footer>
+            <p>OpenAI Whisper və GPT-4 texnologiyaları ilə işləyir</p>
+        </footer>
     </div>
 
     <script src="app.js"></script>
