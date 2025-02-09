@@ -4,7 +4,7 @@ const API_BASE_URL = 'https://your-vm-ip-or-domain'; // Change this to your Orac
 // For assets, use relative paths when deployed to GitHub Pages
 const ASSETS_BASE_URL = window.location.hostname === 'localhost' 
     ? '' 
-    : '/voice-to-text-api';
+    : '/AI-Podcast-Summarizer';
 
 // Update image src to work both locally and on GitHub Pages
 document.getElementById('uploadIcon').src = `${ASSETS_BASE_URL}/upload-icon.svg`;
