@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import openai
+from openai import OpenAI
 from pydub import AudioSegment
 import os
 from dotenv import load_dotenv
@@ -39,12 +39,17 @@ app.add_middleware(
 logger.info("CORS configured")
 
 # Configure OpenAI
-openai.api_key = os.getenv("OPENAI_API_KEY")
-if not openai.api_key:
-    logger.error("OpenAI API key not found!")
-    raise Exception("OpenAI API key not configured")
-else:
+try:
+    client = OpenAI(
+        api_key=os.getenv('OPENAI_API_KEY'),
+        base_url="https://api.openai.com/v1"
+    )  # More explicit initialization
+    # Test the client with a simple request
+    models = client.models.list()
     logger.info("OpenAI API key configured successfully")
+except Exception as e:
+    logger.error(f"Error configuring OpenAI client: {str(e)}")
+    raise Exception(f"OpenAI API key configuration failed: {str(e)}")
 
 # Temporary storage for processing files
 TEMP_DIR = tempfile.gettempdir()
@@ -115,12 +120,13 @@ async def upload_audio(file: UploadFile):
         logger.info("Starting transcription with Whisper")
         try:
             with open(temp_path, "rb") as audio_file:
-                transcript = openai.audio.transcriptions.create(
+                transcript = client.audio.transcriptions.create(
                     model="whisper-1",
-                    file=audio_file
+                    file=audio_file,
+                    response_format="text"
                 )
             logger.info("Transcription complete")
-            logger.debug(f"Transcript length: {len(transcript.text)} characters")
+            logger.debug(f"Transcript length: {len(transcript)} characters")
         except Exception as e:
             logger.error(f"Error in transcription: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
@@ -128,11 +134,11 @@ async def upload_audio(file: UploadFile):
         # Generate summary with GPT
         logger.info("Generating summary with GPT")
         try:
-            summary_response = openai.chat.completions.create(
+            summary_response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that creates concise summaries of transcribed audio content."},
-                    {"role": "user", "content": f"Please provide a concise summary of this transcript: {transcript.text}"}
+                    {"role": "user", "content": f"Please provide a concise summary of this transcript: {transcript}"}
                 ]
             )
             summary = summary_response.choices[0].message.content
@@ -144,7 +150,7 @@ async def upload_audio(file: UploadFile):
 
         # Store results
         processing_files[process_id] = {
-            "transcript": transcript.text,
+            "transcript": transcript,
             "summary": summary
         }
 
@@ -157,7 +163,7 @@ async def upload_audio(file: UploadFile):
         return JSONResponse({
             "message": "File processed successfully",
             "process_id": process_id,
-            "transcript": transcript.text,
+            "transcript": transcript,
             "summary": summary
         })
 
@@ -178,7 +184,7 @@ async def get_summary(process_id: str):
 @app.get("/health")
 async def health_check():
     logger.info("Health check endpoint accessed")
-    api_status = "configured" if openai.api_key else "missing"
+    api_status = "configured" if client.api_key else "missing"
     logger.info(f"OpenAI API status: {api_status}")
     
     # Check temp directory
@@ -195,7 +201,7 @@ async def health_check():
         },
         "environment": {
             "python_version": sys.version,
-            "openai_key_set": bool(openai.api_key),
+            "openai_key_set": bool(client.api_key),
             "temp_dir_writable": temp_dir_writable
         }
     } 

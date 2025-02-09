@@ -1,5 +1,7 @@
 // API Configuration
-const API_BASE_URL = 'https://ai-podcast-summarizer.onrender.com'; // Your Render URL
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000'
+    : 'https://ai-podcast-summarizer.onrender.com';
 
 // For assets, use relative paths when deployed to GitHub Pages
 const ASSETS_BASE_URL = window.location.hostname === 'localhost' 
