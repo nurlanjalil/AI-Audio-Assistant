@@ -84,15 +84,22 @@ async function processAudioFile() {
     resultContainer.classList.add('hidden');
 
     try {
+        console.log('Starting file upload...');
         const formData = new FormData();
         formData.append('file', file);
 
+        console.log('Sending request to:', `${API_BASE_URL}/upload-audio/`);
         const response = await fetch(`${API_BASE_URL}/upload-audio/`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: {
+                'Accept': 'application/json',
+            }
         });
 
+        console.log('Response status:', response.status);
         const data = await response.json();
+        console.log('Response data:', data);
 
         if (!response.ok) {
             throw new Error(data.detail || 'Failed to process audio file');
@@ -107,8 +114,12 @@ async function processAudioFile() {
         resultContainer.classList.remove('hidden');
 
     } catch (error) {
-        console.error('Error:', error);
-        alert(`Error: ${error.message || 'An error occurred while processing the audio file. Please try again.'}`);
+        console.error('Detailed error:', error);
+        let errorMessage = error.message;
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            errorMessage = 'Cannot connect to the server. Please try again later.';
+        }
+        alert(`Error: ${errorMessage}`);
         resetUI();
     }
 }
