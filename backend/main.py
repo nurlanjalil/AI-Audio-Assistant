@@ -92,7 +92,10 @@ async def transcribe_azerbaijani(
         temp_path = await save_audio_file(file)
         
         # Transcribe with Whisper (optimized for Azerbaijani)
-        transcript = await transcribe_audio(temp_path, "azerbaijani")
+        raw_transcript = await transcribe_audio(temp_path, "azerbaijani")
+        
+        # Correct the transcript using GPT-4
+        corrected_transcript = await correct_transcript(raw_transcript)
         
         # Cleanup
         if os.path.exists(temp_path):
@@ -100,7 +103,7 @@ async def transcribe_azerbaijani(
         
         return JSONResponse({
             "success": True,
-            "transcript": transcript,
+            "transcript": corrected_transcript,
             "language": "azerbaijani"
         })
     except Exception as e:
@@ -119,10 +122,13 @@ async def summarize_audio(file: UploadFile = File(...)):
         temp_path = await save_audio_file(file)
         
         # Transcribe
-        transcript = await transcribe_audio(temp_path)
+        raw_transcript = await transcribe_audio(temp_path)
+        
+        # Correct the transcript
+        corrected_transcript = await correct_transcript(raw_transcript)
         
         # Generate summary
-        summary = await generate_summary(transcript)
+        summary = await generate_summary(corrected_transcript)
         
         # Cleanup
         if os.path.exists(temp_path):
@@ -130,7 +136,7 @@ async def summarize_audio(file: UploadFile = File(...)):
         
         return JSONResponse({
             "success": True,
-            "transcript": transcript,
+            "transcript": corrected_transcript,
             "summary": summary
         })
     except Exception as e:
@@ -216,6 +222,34 @@ async def generate_summary(transcript: str) -> str:
         return response.choices[0].message.content
     except Exception as e:
         logger.error(f"Error generating summary: {str(e)}", exc_info=True)
+        raise e
+
+async def correct_transcript(transcript: str) -> str:
+    """
+    Correct the transcribed text using GPT-4 to fix any voice-to-text errors.
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",  # Using GPT-4 for better Azerbaijani language understanding
+            messages=[
+                {
+                    "role": "system", 
+                    "content": """You are an expert in Azerbaijani language.
+                                Your task is to correct any errors in voice-to-text transcriptions while maintaining the original meaning.
+                                Fix grammar, punctuation, and word choice errors.
+                                Keep the text in Azerbaijani language."""
+                },
+                {
+                    "role": "user", 
+                    "content": "This text has been converted using voice-to-text, so there are some errors. Find and correct them:\n\n" + transcript
+                }
+            ],
+            temperature=0.3,  # Lower temperature for more consistent corrections
+            max_tokens=1000
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        logger.error(f"Error correcting transcript: {str(e)}", exc_info=True)
         raise e
 
 @app.get("/health")
