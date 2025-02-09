@@ -40,15 +40,23 @@ logger.info("CORS configured")
 
 # Configure OpenAI
 try:
-    client = OpenAI(
-        api_key=os.getenv('OPENAI_API_KEY'),
-        base_url="https://api.openai.com/v1"
-    )  # More explicit initialization
+    # Basic configuration
+    openai_config = {
+        "api_key": os.getenv('OPENAI_API_KEY')
+    }
+    
+    # Add base URL only if we're not in a proxy environment
+    if not os.getenv('HTTPS_PROXY') and not os.getenv('HTTP_PROXY'):
+        openai_config["base_url"] = "https://api.openai.com/v1"
+    
+    client = OpenAI(**openai_config)
+    
     # Test the client with a simple request
     models = client.models.list()
     logger.info("OpenAI API key configured successfully")
 except Exception as e:
     logger.error(f"Error configuring OpenAI client: {str(e)}")
+    logger.error(f"Environment variables: HTTPS_PROXY={os.getenv('HTTPS_PROXY')}, HTTP_PROXY={os.getenv('HTTP_PROXY')}")
     raise Exception(f"OpenAI API key configuration failed: {str(e)}")
 
 # Temporary storage for processing files
