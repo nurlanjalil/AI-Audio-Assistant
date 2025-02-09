@@ -186,10 +186,15 @@ async function processAudioFile(isSummary) {
         return;
     }
 
+    // Hide upload areas
     if (isSummary) {
         summaryFileInfo.classList.add('hidden');
+        summaryDropZone.classList.add('hidden');
     } else {
         fileInfo.classList.add('hidden');
+        dropZone.classList.add('hidden');
+        document.querySelector('.method-selector').classList.add('hidden');
+        document.getElementById('record-content').classList.add('hidden');
     }
     
     loadingContainer.classList.remove('hidden');
@@ -198,13 +203,14 @@ async function processAudioFile(isSummary) {
     try {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('service', isSummary ? 'summary' : 'transcription');
 
-        const response = await fetch(`${API_BASE_URL}/upload-audio/`, {
+        // Use the correct endpoints from the API
+        const endpoint = isSummary ? '/summarize-audio/' : '/transcribe-azerbaijani/';
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
             body: formData,
             headers: {
-                'Accept': 'application/json',
+                'Accept': 'application/json'
             }
         });
 
@@ -290,6 +296,11 @@ function resetUI() {
     resultContainer.classList.add('hidden');
     transcriptContent.textContent = '';
     summaryContent.textContent = '';
+    
+    // Show upload areas again
+    dropZone.classList.remove('hidden');
+    summaryDropZone.classList.remove('hidden');
+    document.querySelector('.method-selector').classList.remove('hidden');
     
     // Reset recording UI
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
