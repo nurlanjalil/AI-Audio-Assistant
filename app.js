@@ -66,21 +66,20 @@ function handleFileSelection(file) {
         return;
     }
 
+    // Just update the UI, the file is already in fileInput for direct uploads
+    // or will be handled by the drop event for drag and drop
     fileName.textContent = file.name;
     fileInfo.classList.remove('hidden');
-    
-    // Create a new DataTransfer object
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    
-    // Set the files property
-    fileInput.files = dataTransfer.files;
 }
 
 // Process Audio File
 async function processAudioFile() {
+    // Get file either from fileInput or stored file
     const file = fileInput.files[0];
-    if (!file) return;
+    if (!file) {
+        alert('Please select a file first');
+        return;
+    }
 
     // Show loading state
     fileInfo.classList.add('hidden');
@@ -88,7 +87,7 @@ async function processAudioFile() {
     resultContainer.classList.add('hidden');
 
     try {
-        console.log('Starting file upload...');
+        console.log('Starting file upload...', file.name);
         const formData = new FormData();
         formData.append('file', file);
 
