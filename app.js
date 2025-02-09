@@ -73,8 +73,28 @@ methodButtons.forEach(button => {
         button.classList.add('active');
         document.getElementById(`${method}-content`).classList.add('active');
         
-        // Reset file info when switching methods
+        // Reset everything when switching methods
+        fileInput.value = '';
+        fileName.textContent = '';
         fileInfo.classList.add('hidden');
+        dropZone.classList.remove('hidden');
+        
+        // Reset recording UI when switching
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            stopRecording();
+        }
+        startRecord.disabled = false;
+        stopRecord.disabled = true;
+        recordIndicator.classList.add('hidden');
+        startRecord.classList.remove('recording');
+        recordPreview.classList.add('hidden');
+        audioPreview.src = '';
+        clearInterval(recordingTimer);
+        recordTime.textContent = '00:00';
+        
+        // Hide result container when switching methods
+        resultContainer.classList.add('hidden');
+        loadingContainer.classList.add('hidden');
     });
 });
 
@@ -169,12 +189,17 @@ function handleFileSelection(file, isSummary) {
         return;
     }
 
+    // Hide upload areas immediately after file selection
     if (isSummary) {
         summaryFileName.textContent = file.name;
         summaryFileInfo.classList.remove('hidden');
+        summaryDropZone.classList.add('hidden');
     } else {
         fileName.textContent = file.name;
         fileInfo.classList.remove('hidden');
+        dropZone.classList.add('hidden');
+        document.querySelector('.method-selector').classList.add('hidden');
+        document.getElementById('record-content').classList.add('hidden');
     }
 }
 
@@ -186,15 +211,11 @@ async function processAudioFile(isSummary) {
         return;
     }
 
-    // Hide upload areas
+    // Hide file info during processing
     if (isSummary) {
         summaryFileInfo.classList.add('hidden');
-        summaryDropZone.classList.add('hidden');
     } else {
         fileInfo.classList.add('hidden');
-        dropZone.classList.add('hidden');
-        document.querySelector('.method-selector').classList.add('hidden');
-        document.getElementById('record-content').classList.add('hidden');
     }
     
     loadingContainer.classList.remove('hidden');
@@ -206,19 +227,18 @@ async function processAudioFile(isSummary) {
 
         // Use the correct endpoints from the API
         const endpoint = isSummary ? '/summarize-audio/' : '/transcribe-azerbaijani/';
+        
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
-            body: formData,
-            headers: {
-                'Accept': 'application/json'
-            }
+            body: formData
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
+            const data = await response.json();
             throw new Error(data.detail || 'Failed to process audio file');
         }
+
+        const data = await response.json();
 
         // Display results
         transcriptContent.textContent = data.transcript;
