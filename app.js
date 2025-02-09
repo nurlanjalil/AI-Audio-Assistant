@@ -92,12 +92,12 @@ async function processAudioFile() {
             body: formData
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error('Failed to process audio file');
+            throw new Error(data.detail || 'Failed to process audio file');
         }
 
-        const data = await response.json();
-        
         // Display results
         transcriptContent.textContent = data.transcript;
         summaryContent.textContent = data.summary;
@@ -108,7 +108,7 @@ async function processAudioFile() {
 
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while processing the audio file. Please try again.');
+        alert(`Error: ${error.message || 'An error occurred while processing the audio file. Please try again.'}`);
         resetUI();
     }
 }
