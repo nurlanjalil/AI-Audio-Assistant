@@ -205,9 +205,19 @@ function handleFileSelection(file, isSummary) {
 
 // Process Audio File
 async function processAudioFile(isSummary) {
-    const file = isSummary ? summaryFileInput.files[0] : fileInput.files[0];
+    let file;
+    
+    // Check for recorded audio first
+    if (audioChunks.length > 0) {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+    } else {
+        // If no recording, check for uploaded file
+        file = isSummary ? summaryFileInput.files[0] : fileInput.files[0];
+    }
+    
     if (!file) {
-        alert('Xahiş edirik əvvəlcə fayl seçin');
+        alert('Xahiş edirik əvvəlcə fayl seçin və ya səs yazın');
         return;
     }
 
