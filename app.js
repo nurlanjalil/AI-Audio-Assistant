@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = 'https://your-vm-ip-or-domain'; // Change this to your Oracle Cloud VM IP or domain
+const API_BASE_URL = 'https://ai-podcast-summarizer.onrender.com'; // Your Render URL
 
 // For assets, use relative paths when deployed to GitHub Pages
 const ASSETS_BASE_URL = window.location.hostname === 'localhost' 
