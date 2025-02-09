@@ -1,15 +1,15 @@
 # AI Audio Assistant 🎙️
 
-Convert your audio content into text and get AI-powered summaries instantly.
+Convert your audio content into text with AI-powered transcription.
 
 ## Features ✨
 
 - Audio file upload (MP3, WAV, M4A)
 - Live voice recording (up to 1 minute)
 - Automatic speech-to-text transcription with AI-powered error correction
-- AI-powered content summarization
 - Simple and intuitive interface
 - Drag-and-drop support
+- Audio summarization (Coming Soon! 🚀)
 
 ## Try It Out 🚀
 
@@ -27,7 +27,7 @@ Visit: [AI Audio Assistant](https://nurlanjalil.tech/AI-Audio-Assistant/)
    - Click "⏺ Yazmağa başla" to start recording
    - Click "⏹ Dayandır" when finished
 4. Click "Mətnə Çevir" to process your audio
-5. View your transcript and summary
+5. View your transcript
 
 ## Supported Formats 📁
 
@@ -38,7 +38,7 @@ Visit: [AI Audio Assistant](https://nurlanjalil.tech/AI-Audio-Assistant/)
 ## Technologies Used 🛠️
 
 - OpenAI Whisper API for initial transcription
-- GPT-4 for transcription correction and summarization
+- GPT-4 for transcription correction
 - FastAPI backend
 - Vanilla JavaScript frontend
 

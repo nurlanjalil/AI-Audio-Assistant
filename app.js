@@ -52,6 +52,12 @@ tabButtons.forEach(button => {
     button.addEventListener('click', () => {
         const tab = button.dataset.tab;
         
+        // Show coming soon message for summarization tab
+        if (tab === 'audio-summary') {
+            alert('Audio xülasə funksiyası tezliklə əlavə olunacaq! 🚀');
+            return;
+        }
+        
         tabButtons.forEach(btn => btn.classList.remove('active'));
         tabContents.forEach(content => content.classList.remove('active'));
         
@@ -223,12 +229,14 @@ function updateUIAfterFileSelection(file, isSummary) {
         summaryFileName.textContent = file.name;
         summaryFileInfo.classList.remove('hidden');
         summaryDropZone.classList.add('hidden');
+        summaryProcessButton.classList.remove('hidden');
     } else {
         fileName.textContent = file.name;
         fileInfo.classList.remove('hidden');
         dropZone.classList.add('hidden');
         document.querySelector('.method-selector').classList.add('hidden');
         document.getElementById('record-content').classList.add('hidden');
+        processButton.classList.remove('hidden');
     }
 }
 
@@ -237,7 +245,7 @@ async function processAudioFile(isSummary) {
     let file;
     
     // Check for recorded audio first
-    if (audioChunks.length > 0) {
+    if (audioChunks.length > 0 && !isSummary) {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
     } else {
@@ -250,11 +258,13 @@ async function processAudioFile(isSummary) {
         return;
     }
 
-    // Hide file info during processing
+    // Hide file info and show loading
     if (isSummary) {
         summaryFileInfo.classList.add('hidden');
+        summaryProcessButton.classList.add('hidden');
     } else {
         fileInfo.classList.add('hidden');
+        processButton.classList.add('hidden');
     }
     
     loadingContainer.classList.remove('hidden');
@@ -280,11 +290,12 @@ async function processAudioFile(isSummary) {
         const data = await response.json();
 
         // Display results
-        transcriptContent.textContent = data.transcript;
         if (isSummary) {
-            summaryContent.textContent = data.summary;
+            transcriptContent.textContent = data.transcript || '';
+            summaryContent.textContent = data.summary || '';
             summarySection.classList.remove('hidden');
         } else {
+            transcriptContent.textContent = data.transcript || '';
             summarySection.classList.add('hidden');
         }
         
@@ -299,7 +310,16 @@ async function processAudioFile(isSummary) {
             errorMessage = 'Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.';
         }
         alert(`Xəta: ${errorMessage}`);
-        resetUI();
+        
+        // Restore UI on error
+        if (isSummary) {
+            summaryFileInfo.classList.remove('hidden');
+            summaryProcessButton.classList.remove('hidden');
+        } else {
+            fileInfo.classList.remove('hidden');
+            processButton.classList.remove('hidden');
+        }
+        loadingContainer.classList.add('hidden');
     }
 }
 
@@ -363,6 +383,8 @@ function resetUI() {
     resultContainer.classList.add('hidden');
     transcriptContent.textContent = '';
     summaryContent.textContent = '';
+    processButton.classList.add('hidden');
+    summaryProcessButton.classList.add('hidden');
     
     // Show upload areas again
     dropZone.classList.remove('hidden');

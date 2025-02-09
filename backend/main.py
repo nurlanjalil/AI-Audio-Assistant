@@ -199,27 +199,28 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
 
 async def generate_summary(transcript: str) -> str:
     """
-    Generate a summary of the transcribed text using Claude 4.0 Mini model.
+    Generate a summary of the transcribed text using GPT-4.
     """
     try:
         response = client.chat.completions.create(
-            model="gpt-4",  # Using GPT-4 for better Azerbaijani language understanding
+            model="gpt-4",
             messages=[
                 {
                     "role": "system", 
                     "content": """You are an expert in Azerbaijani language and summarization.
                                 Create concise, accurate summaries of transcribed content.
-                                If the text is in Azerbaijani, maintain key terminology and cultural context."""
+                                If the text is in Azerbaijani, maintain key terminology and cultural context.
+                                Return ONLY the summary in Azerbaijani language."""
                 },
                 {
                     "role": "user", 
-                    "content": f"Please provide a concise summary of this transcript, preserving any important Azerbaijani context: {transcript}"
+                    "content": f"Provide a concise summary of this text in Azerbaijani:\n\n{transcript}"
                 }
             ],
             temperature=0.7,
             max_tokens=300
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Error generating summary: {str(e)}", exc_info=True)
         raise e
@@ -237,17 +238,18 @@ async def correct_transcript(transcript: str) -> str:
                     "content": """You are an expert in Azerbaijani language.
                                 Your task is to correct any errors in voice-to-text transcriptions while maintaining the original meaning.
                                 Fix grammar, punctuation, and word choice errors.
-                                Keep the text in Azerbaijani language."""
+                                Keep the text in Azerbaijani language.
+                                IMPORTANT: Return ONLY the corrected text, without any explanations or the original prompt."""
                 },
                 {
                     "role": "user", 
-                    "content": "This text has been converted using voice-to-text, so there are some errors. Find and correct them:\n\n" + transcript
+                    "content": f"Correct any errors in this voice-to-text transcription:\n\n{transcript}"
                 }
             ],
             temperature=0.3,  # Lower temperature for more consistent corrections
             max_tokens=1000
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Error correcting transcript: {str(e)}", exc_info=True)
         raise e
