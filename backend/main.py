@@ -30,6 +30,15 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 TEMP_DIR = tempfile.gettempdir()
 processing_files: Dict[str, dict] = {}
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to Podcast Summarizer API", 
+            "endpoints": {
+                "/": "This help message",
+                "/health": "Health check endpoint",
+                "/upload-audio/": "Upload audio file for transcription and summary"
+            }}
+
 @app.post("/upload-audio/")
 async def upload_audio(file: UploadFile):
     if not file:
