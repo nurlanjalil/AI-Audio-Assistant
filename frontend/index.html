@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Podcast Summarizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎙️ AI Podcast Summarizer</h1>
+            <p class="subtitle">Upload your audio file and get an AI-generated summary</p>
+        </header>
+
+        <main>
+            <div class="upload-container" id="dropZone">
+                <div class="upload-content">
+                    <img src="upload-icon.svg" alt="Upload" id="uploadIcon">
+                    <p>Drag and drop your audio file here or</p>
+                    <label for="fileInput" class="upload-button">Choose File</label>
+                    <input type="file" id="fileInput" accept=".mp3,.wav,.m4a" hidden>
+                    <p class="file-types">Supported formats: MP3, WAV, M4A</p>
+                </div>
+                <div id="fileInfo" class="file-info hidden">
+                    <p>Selected file: <span id="fileName"></span></p>
+                    <button id="processButton" class="process-button">Process Audio</button>
+                </div>
+            </div>
+
+            <div id="loadingContainer" class="loading-container hidden">
+                <div class="loading-spinner"></div>
+                <p>Processing your audio file...</p>
+            </div>
+
+            <div id="resultContainer" class="result-container hidden">
+                <div class="result-section">
+                    <h2>📝 Transcript</h2>
+                    <div class="content-box" id="transcriptContent"></div>
+                </div>
+                
+                <div class="result-section">
+                    <h2>✨ Summary</h2>
+                    <div class="content-box" id="summaryContent"></div>
+                </div>
+
+                <button id="newFileButton" class="new-file-button">Process Another File</button>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by OpenAI Whisper and GPT-4</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html> 
