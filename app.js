@@ -54,7 +54,7 @@ tabButtons.forEach(button => {
         
         // Show coming soon message for summarization tab
         if (tab === 'audio-summary') {
-            alert('Audio xülasə funksiyası tezliklə əlavə olunacaq! 🚀\nBu funksiya hazırlanır...');
+            alert('Audio xülasə funksiyası tezliklə əlavə olunacaq! 🚀');
             return;
         }
         
