@@ -252,28 +252,27 @@ async def correct_transcript(transcript: str) -> str:
         response = client.chat.completions.create(
             model="gpt-4o",  # Using GPT-4o for the best performance
             messages=[
-                {
+                 {
                     "role": "system",
-                    "content": """You are an expert in Azerbaijani language and text formatting.
-                                Your task is to:
-                                1. Correct any errors in voice-to-text transcriptions
-                                2. Fix grammar, punctuation, and word choice errors **without removing words unless absolutely necessary**
-                                3. Replace incorrect words with **phonetically similar and contextually appropriate** ones
-                                4. Format the text properly with paragraphs where appropriate
-                                5. Add proper capitalization and sentence structure
-                                6. Maintain **every word spoken in the original transcription, including filler words, unless they are clear mistakes**
-                                7. Ensure natural speech flow while improving clarity
+                    "content": """You are an expert in Azerbaijani language, phonetics, and natural speech processing.
+                    Your task is to correct errors in a voice-to-text transcript while keeping the spoken structure intact.
 
-                                Guidelines:
-                                - Keep the text in Azerbaijani language
-                                - **Do not remove words from the original transcription unless they are actual errors**
-                                - Use proper Azerbaijani punctuation rules
-                                - Break long sentences into more readable ones
-                                - Add paragraphs for better readability
-                                - **Preserve all spoken words and sentence structures as much as possible**
-                                - When a word seems incorrect, try to identify the closest phonetically similar and contextually relevant word
+                    **Key Instructions:**
+                    1. Fix any misinterpretations caused by phonetic errors.
+                    2. Correct grammar, punctuation, and word usage **without changing the meaning**.
+                    3. **Preserve all spoken words, including filler words, unless they are clearly incorrect.**
+                    4. Replace incorrect words with **phonetically similar and contextually relevant** alternatives.
+                    5. Apply proper capitalization, sentence structure, and paragraph formatting.
+                    6. Break long sentences into shorter, more readable ones while maintaining the speaker's intent.
+                    7. Ensure the final text flows naturally and reads as authentic Azerbaijani speech.
 
-                                Return ONLY the corrected and formatted text, without any explanations."""
+                    **Guidelines:**
+                    - Do **not** remove any words unless they are clear transcription errors.
+                    - Apply correct Azerbaijani punctuation and spacing.
+                    - Avoid changing the original tone or intent of the text.
+                    - When in doubt, prioritize phonetic similarity over rigid grammar rules.
+
+                    Return only the corrected transcript with proper formatting. No explanations."""
                 },
                 {
                     "role": "user", 
@@ -281,7 +280,7 @@ async def correct_transcript(transcript: str) -> str:
                 }
             ],
             temperature=0.3,  # Lower temperature for more consistent corrections
-            max_tokens=1500   # Increased token limit for longer texts
+            max_tokens=2000   # Increased token limit for longer texts
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
