@@ -32,6 +32,10 @@
                     <span class="tab-icon">✨</span>
                     Audio Xülasə
                 </button>
+                <button class="tab-button" data-tab="text-to-speech">
+                    <span class="tab-icon">🔊</span>
+                    Mətni səsə çevir
+                </button>
             </div>
 
             <div class="tab-content active" id="speech-to-text">
@@ -142,6 +146,26 @@
                 <div id="summaryFileInfo" class="file-info hidden">
                     <p>Seçilmiş fayl: <span id="summaryFileName"></span></p>
                     <button id="summaryProcessButton" class="process-button">Xülasə Yarat</button>
+                </div>
+            </div>
+
+            <div class="tab-content" id="text-to-speech">
+                <div class="text-input-container">
+                    <textarea id="ttsInput" placeholder="Səsə çevirmək istədiyiniz mətni daxil edin..." rows="6"></textarea>
+                    <div class="tts-controls">
+                        <button id="generateSpeech" class="process-button">Səsə Çevir</button>
+                    </div>
+                </div>
+                <div id="ttsResult" class="result-container hidden">
+                    <div class="result-section">
+                        <h2>🔊 Səs Nəticəsi</h2>
+                        <div class="audio-player-container">
+                            <audio id="ttsAudio" controls>
+                                Brauzeriniz audio elementini dəstəkləmir.
+                            </audio>
+                        </div>
+                        <button id="newTtsButton" class="new-file-button">Yeni Mətn Daxil Et</button>
+                    </div>
                 </div>
             </div>
 

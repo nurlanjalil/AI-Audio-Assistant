@@ -67,6 +67,13 @@ const summaryRecordIndicator = document.querySelector('#summary-record-content .
 const summaryRecordPreview = document.querySelector('#summary-record-content .record-preview');
 const summaryAudioPreview = document.getElementById('summaryAudioPreview');
 
+// Text-to-Speech Elements
+const ttsInput = document.getElementById('ttsInput');
+const generateSpeechBtn = document.getElementById('generateSpeech');
+const ttsResult = document.getElementById('ttsResult');
+const ttsAudio = document.getElementById('ttsAudio');
+const newTtsButton = document.getElementById('newTtsButton');
+
 // Tab Handling
 tabButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -543,4 +550,59 @@ document.querySelectorAll('.preview-process-button').forEach(button => {
         const isSummary = button.closest('#summarizer') !== null;
         processAudioFile(isSummary);
     });
+});
+
+// Text-to-Speech Handlers
+generateSpeechBtn.addEventListener('click', async () => {
+    const text = ttsInput.value.trim();
+    
+    if (!text) {
+        alert('Xahiş edirik mətn daxil edin');
+        return;
+    }
+    
+    loadingContainer.classList.remove('hidden');
+    generateSpeechBtn.disabled = true;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/text-to-speech/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text })
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.detail || 'Failed to generate speech');
+        }
+        
+        const data = await response.json();
+        
+        // Convert base64 to audio
+        const audioSrc = `data:audio/mp3;base64,${data.audio}`;
+        ttsAudio.src = audioSrc;
+        
+        // Show results
+        loadingContainer.classList.add('hidden');
+        ttsResult.classList.remove('hidden');
+        ttsInput.classList.add('hidden');
+        generateSpeechBtn.classList.add('hidden');
+        
+    } catch (error) {
+        console.error('Error generating speech:', error);
+        alert(`Xəta: ${error.message}`);
+        loadingContainer.classList.add('hidden');
+        generateSpeechBtn.disabled = false;
+    }
+});
+
+newTtsButton.addEventListener('click', () => {
+    ttsInput.value = '';
+    ttsResult.classList.add('hidden');
+    ttsInput.classList.remove('hidden');
+    generateSpeechBtn.classList.remove('hidden');
+    generateSpeechBtn.disabled = false;
+    ttsAudio.src = '';
 }); 
