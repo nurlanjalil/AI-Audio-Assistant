@@ -252,25 +252,25 @@ async def correct_transcript(transcript: str) -> str:
         response = client.chat.completions.create(
             model="gpt-4o",  # Using GPT-4o for the best performance
             messages=[
-                 {
+                    {
                     "role": "system",
                     "content": """You are an expert in Azerbaijani language, phonetics, and natural speech processing.
                     Your task is to correct errors in a voice-to-text transcript while keeping the spoken structure intact.
 
                     **Key Instructions:**
                     1. Fix any misinterpretations caused by phonetic errors.
-                    2. Correct grammar, punctuation, and word usage **without changing the meaning**.
+                    2. Correct grammar, punctuation, and word usage **without changing the speaker’s word choices whenever possible**.
                     3. **Preserve all spoken words, including filler words, unless they are clearly incorrect.**
-                    4. Replace incorrect words with **phonetically similar and contextually relevant** alternatives.
+                    4. Replace incorrect words with **phonetically similar and contextually relevant** alternatives **only when necessary**.
                     5. Apply proper capitalization, sentence structure, and paragraph formatting.
                     6. Break long sentences into shorter, more readable ones while maintaining the speaker's intent.
                     7. Ensure the final text flows naturally and reads as authentic Azerbaijani speech.
 
                     **Guidelines:**
-                    - Do **not** remove any words unless they are clear transcription errors.
+                    - Do **not** remove or replace words unless they are transcription errors or grammatically incorrect.
                     - Apply correct Azerbaijani punctuation and spacing.
                     - Avoid changing the original tone or intent of the text.
-                    - When in doubt, prioritize phonetic similarity over rigid grammar rules.
+                    - When in doubt, prioritize grammatical accuracy while preserving the original wording.
 
                     Return only the corrected transcript with proper formatting. No explanations."""
                 },
