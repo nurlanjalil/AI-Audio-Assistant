@@ -152,28 +152,32 @@ async def transcribe_live(file: UploadFile = File(...)):
     return await transcribe_azerbaijani(file, live_recording=True)
 
 @app.post("/text-to-speech/")
-async def text_to_speech(text: str = Form(...)):
+async def text_to_speech(text: Optional[str] = Form(None), text_query: Optional[str] = None):
     """
     Convert text to speech using OpenAI's TTS API.
     Optimized for Azerbaijani language support.
+    Accepts text both as form data and query parameter.
     """
-    logger.info(f"Received TTS request for text: {text[:50]}...")
+    # Get text from either form data or query parameter
+    final_text = text or text_query
     
-    if not text.strip():
+    if not final_text or not final_text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
+    
+    logger.info(f"Received TTS request for text: {final_text[:50]}...")
     
     try:
         # Generate speech using OpenAI's TTS
         response = client.audio.speech.create(
             model="tts-1-hd",  # Using HD model for better quality
             voice="nova",  # Nova voice works better for non-English
-            input=text,
+            input=final_text,
             speed=1.0,
             response_format="mp3"
         )
         
         # Create a unique filename using first few words of text
-        text_preview = text.split()[:3]
+        text_preview = final_text.split()[:3]
         text_preview = "_".join(text_preview)[:30]
         filename = f"tts_{text_preview}_{uuid.uuid4()[:8]}.mp3"
         temp_path = os.path.join(TEMP_DIR, filename)

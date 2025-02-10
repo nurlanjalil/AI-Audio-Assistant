@@ -575,14 +575,9 @@ ttsGenerateButton.addEventListener('click', async () => {
         loadingContainer.classList.remove('hidden');
         loadingContainer.querySelector('p').textContent = 'Səs yaradılır, zəhmət olmasa gözləyin..';
         
-        // Create form data
-        const formData = new FormData();
-        formData.append('text', text);
-        
-        // Make API request with form data
-        const response = await fetch(`${API_BASE_URL}/text-to-speech/`, {
-            method: 'POST',
-            body: formData
+        // Make API request with query parameter
+        const response = await fetch(`${API_BASE_URL}/text-to-speech/?text=${encodeURIComponent(text)}`, {
+            method: 'POST'
         });
         
         if (!response.ok) {
