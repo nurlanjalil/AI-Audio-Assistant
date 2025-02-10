@@ -227,32 +227,44 @@ async def generate_summary(transcript: str) -> str:
 
 async def correct_transcript(transcript: str) -> str:
     """
-    Correct the transcribed text using GPT-4 to fix any voice-to-text errors.
+    Correct the transcribed text using GPT-4o to fix any voice-to-text errors and improve formatting.
     """
     try:
         response = client.chat.completions.create(
-            model="gpt-4",  # Using GPT-4 for better Azerbaijani language understanding
+            model="gpt-4o",  # Using GPT-4o for the best performance
             messages=[
                 {
                     "role": "system", 
-                    "content": """You are an expert in Azerbaijani language.
-                                Your task is to correct any errors in voice-to-text transcriptions while maintaining the original meaning.
-                                Fix grammar, punctuation, and word choice errors.
-                                Keep the text in Azerbaijani language.
-                                IMPORTANT: Return ONLY the corrected text, without any explanations or the original prompt."""
+                    "content": """You are an expert in Azerbaijani language and text formatting.
+                                Your task is to:
+                                1. Correct any errors in voice-to-text transcriptions
+                                2. Fix grammar, punctuation, and word choice errors
+                                3. Format the text properly with paragraphs where appropriate
+                                4. Add proper capitalization and sentence structure
+                                5. Maintain natural speech flow while improving clarity
+                                
+                                Guidelines:
+                                - Keep the text in Azerbaijani language
+                                - Preserve the original meaning and context
+                                - Use proper Azerbaijani punctuation rules
+                                - Break long sentences into more readable ones
+                                - Add paragraphs for better readability
+                                
+                                Return ONLY the corrected and formatted text, without any explanations."""
                 },
                 {
                     "role": "user", 
-                    "content": f"Correct any errors in this voice-to-text transcription:\n\n{transcript}"
+                    "content": f"Correct and format this voice-to-text transcription:\n\n{transcript}"
                 }
             ],
             temperature=0.3,  # Lower temperature for more consistent corrections
-            max_tokens=1000
+            max_tokens=1500   # Increased token limit for longer texts
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Error correcting transcript: {str(e)}", exc_info=True)
         raise e
+
 
 @app.get("/health")
 async def health_check():
