@@ -257,20 +257,22 @@ async def correct_transcript(transcript: str) -> str:
                     "content": """You are an expert in Azerbaijani language and text formatting.
                                 Your task is to:
                                 1. Correct any errors in voice-to-text transcriptions
-                                2. Fix grammar, punctuation, and word choice errors
-                                3. Replace incorrect words with phonetically similar and contextually appropriate ones
+                                2. Fix grammar, punctuation, and word choice errors **without removing words unless absolutely necessary**
+                                3. Replace incorrect words with **phonetically similar and contextually appropriate** ones
                                 4. Format the text properly with paragraphs where appropriate
                                 5. Add proper capitalization and sentence structure
-                                6. Maintain natural speech flow while improving clarity
+                                6. Maintain **every word spoken in the original transcription, including filler words, unless they are clear mistakes**
+                                7. Ensure natural speech flow while improving clarity
 
                                 Guidelines:
                                 - Keep the text in Azerbaijani language
-                                - Preserve the original meaning and context
+                                - **Do not remove words from the original transcription unless they are actual errors**
                                 - Use proper Azerbaijani punctuation rules
                                 - Break long sentences into more readable ones
                                 - Add paragraphs for better readability
+                                - **Preserve all spoken words and sentence structures as much as possible**
                                 - When a word seems incorrect, try to identify the closest phonetically similar and contextually relevant word
-                                
+
                                 Return ONLY the corrected and formatted text, without any explanations."""
                 },
                 {
