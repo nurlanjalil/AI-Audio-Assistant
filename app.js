@@ -565,7 +565,7 @@ generateSpeechBtn.addEventListener('click', async () => {
     generateSpeechBtn.disabled = true;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/text-to-speech/`, {
+        const response = await fetch(`${API_BASE_URL}/text-to-speech`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
