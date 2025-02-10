@@ -91,10 +91,10 @@ async def transcribe_azerbaijani(
         # Process audio file
         temp_path = await save_audio_file(file)
         
-        # Transcribe with Whisper (optimized for Azerbaijani)
-        raw_transcript = await transcribe_audio(temp_path, "azerbaijani")
+        # Transcribe with Whisper Large v3 (best model for Azerbaijani)
+        raw_transcript = await transcribe_audio(temp_path, model="whisper-large-v3", language="az")
         
-        # Correct the transcript using GPT-4
+        # Correct the transcript using GPT-4o
         corrected_transcript = await correct_transcript(raw_transcript)
         
         # Cleanup
@@ -179,17 +179,17 @@ async def save_audio_file(file: UploadFile) -> str:
 
 async def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
     """
-    Transcribe audio using Whisper API.
-    Optimized for Azerbaijani when specified.
+    Transcribe audio using OpenAI Whisper API.
+    Uses the best model for Azerbaijani when specified.
     """
     try:
         with open(file_path, "rb") as audio_file:
             response = client.audio.transcriptions.create(
-                model="whisper-1",
+                model="whisper-large-v3",  # Upgraded to the best Whisper model
                 file=audio_file,
                 response_format="text",
-                language="az" if language == "azerbaijani" else language,
-                prompt="This is Azerbaijani speech. Please transcribe accurately."
+                language="az" if language == "azerbaijani" else language,  # Ensuring proper Azerbaijani language code
+                prompt="Bu mətn Azərbaycan dilindədir. Lütfən, dəqiq şəkildə transkripsiya edin."  # Improved Azerbaijani prompt
             )
         return response
 
@@ -199,31 +199,40 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
 
 async def generate_summary(transcript: str) -> str:
     """
-    Generate a summary of the transcribed text using GPT-4.
+    Generate a summary of the transcribed text using GPT-4o.
     """
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",  # Updated to use GPT-4o for better performance
             messages=[
                 {
                     "role": "system", 
                     "content": """You are an expert in Azerbaijani language and summarization.
-                                Create concise, accurate summaries of transcribed content.
-                                If the text is in Azerbaijani, maintain key terminology and cultural context.
-                                Return ONLY the summary in Azerbaijani language."""
+                                Your task is to:
+                                - Generate a concise and accurate summary of the transcribed text.
+                                - Maintain key terminology and cultural context.
+                                - Keep the summary in Azerbaijani, preserving the core meaning.
+                                
+                                Guidelines:
+                                - Use clear and natural Azerbaijani language.
+                                - Keep the summary brief but informative.
+                                - Avoid unnecessary repetition.
+                                
+                                Return ONLY the summary in Azerbaijani, without additional explanations."""
                 },
                 {
                     "role": "user", 
                     "content": f"Provide a concise summary of this text in Azerbaijani:\n\n{transcript}"
                 }
             ],
-            temperature=0.7,
-            max_tokens=300
+            temperature=0.5,  # Adjusted for a more balanced summary generation
+            max_tokens=300  # Limiting token usage for concise summaries
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Error generating summary: {str(e)}", exc_info=True)
         raise e
+
 
 async def correct_transcript(transcript: str) -> str:
     """
