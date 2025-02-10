@@ -163,9 +163,19 @@ async def save_audio_file(file: UploadFile) -> str:
         with open(temp_path, "wb") as buffer:
             buffer.write(content)
         
+        # Check audio duration
+        audio = AudioSegment.from_file(temp_path)
+        duration_seconds = len(audio) / 1000  # Convert milliseconds to seconds
+        
+        if duration_seconds > 300:  # 5 minutes
+            os.remove(temp_path)
+            raise HTTPException(
+                status_code=400,
+                detail="Audio file duration must not exceed 5 minutes"
+            )
+        
         # Convert to WAV if needed
         if not file.filename.lower().endswith('.wav'):
-            audio = AudioSegment.from_file(temp_path)
             wav_path = os.path.join(TEMP_DIR, f"{process_id}.wav")
             audio.export(wav_path, format="wav")
             os.remove(temp_path)
@@ -199,31 +209,40 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
 
 async def generate_summary(transcript: str) -> str:
     """
-    Generate a summary of the transcribed text using GPT-4.
+    Generate a summary of the transcribed text using GPT-4o.
     """
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",  # Updated to use GPT-4o for better performance
             messages=[
                 {
                     "role": "system", 
                     "content": """You are an expert in Azerbaijani language and summarization.
-                                Create concise, accurate summaries of transcribed content.
-                                If the text is in Azerbaijani, maintain key terminology and cultural context.
-                                Return ONLY the summary in Azerbaijani language."""
+                                Your task is to:
+                                - Generate a concise and accurate summary of the transcribed text.
+                                - Maintain key terminology and cultural context.
+                                - Keep the summary in Azerbaijani, preserving the core meaning.
+                                
+                                Guidelines:
+                                - Use clear and natural Azerbaijani language.
+                                - Keep the summary brief but informative.
+                                - Avoid unnecessary repetition.
+                                
+                                Return ONLY the summary in Azerbaijani, without additional explanations."""
                 },
                 {
                     "role": "user", 
                     "content": f"Provide a concise summary of this text in Azerbaijani:\n\n{transcript}"
                 }
             ],
-            temperature=0.7,
+            temperature=0.5,  # Lowered temperature for more precise summaries
             max_tokens=300
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Error generating summary: {str(e)}", exc_info=True)
         raise e
+
 
 async def correct_transcript(transcript: str) -> str:
     """

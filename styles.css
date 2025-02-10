@@ -486,4 +486,35 @@ footer {
     .donate-logo {
         width: 32px;
     }
+}
+
+.audio-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.audio-controls audio {
+    width: 500px;
+    min-width: 0;
+}
+
+.audio-controls .preview-process-button {
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-left: 0.5rem;
+}
+
+.record-preview {
+    max-width: 100%;
+    overflow: hidden;
+    padding: 1rem;
+}
+
+/* Ensure audio player has consistent height */
+audio {
+    height: 40px;
 } 

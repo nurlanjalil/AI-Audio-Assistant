@@ -72,10 +72,11 @@
                         </div>
                         <div class="record-preview hidden">
                             <p class="preview-title">Səs Yazını Dinlə</p>
-                            <div class="audio-player">
+                            <div class="audio-controls">
                                 <audio id="audioPreview" controls>
                                     Brauzeriniz audio elementini dəstəkləmir.
                                 </audio>
+                                <button class="process-button preview-process-button">Mətnə Çevir</button>
                             </div>
                         </div>
                     </div>
@@ -88,18 +89,58 @@
             </div>
 
             <div class="tab-content" id="summarizer">
-                <div class="upload-container" id="summaryDropZone">
-                    <div class="upload-content">
-                        <img src="upload-icon.svg" alt="Yüklə" id="summaryUploadIcon">
-                        <p>Audio faylı buraya sürüşdürün və ya</p>
-                        <label for="summaryFileInput" class="upload-button">Fayl Seçin</label>
-                        <input type="file" id="summaryFileInput" accept=".mp3,.wav,.m4a" hidden>
-                        <p class="file-types">Dəstəklənən formatlar: MP3, WAV, M4A</p>
+                <div class="method-selector">
+                    <button class="method-button active" data-method="summary-upload">Audio Yüklə</button>
+                    <button class="method-button" data-method="summary-record">Səs Yaz</button>
+                </div>
+
+                <div class="method-content active" id="summary-upload-content">
+                    <div class="upload-container" id="summaryDropZone">
+                        <div class="upload-content">
+                            <img src="upload-icon.svg" alt="Yüklə" id="summaryUploadIcon">
+                            <p>Audio faylı buraya sürüşdürün və ya</p>
+                            <label for="summaryFileInput" class="upload-button">Fayl Seçin</label>
+                            <input type="file" id="summaryFileInput" accept=".mp3,.wav,.m4a" hidden>
+                            <p class="file-types">Dəstəklənən formatlar: MP3, WAV, M4A</p>
+                            <p class="duration-note" style="color: #dc2626; font-size: 0.9rem; margin-top: 0.5rem;">⚠️ Audio faylın uzunluğu 5 dəqiqədən çox olmamalıdır</p>
+                        </div>
                     </div>
-                    <div id="summaryFileInfo" class="file-info hidden">
-                        <p>Seçilmiş fayl: <span id="summaryFileName"></span></p>
-                        <button id="summaryProcessButton" class="process-button">Xülasə Yarat</button>
+                </div>
+
+                <div class="method-content" id="summary-record-content">
+                    <div class="record-container">
+                        <div class="record-controls">
+                            <button id="summaryStartRecord" class="record-button">
+                                <span class="record-icon">⏺</span>
+                                Yazmağa başla
+                            </button>
+                            <button id="summaryStopRecord" class="record-button" disabled>
+                                <span class="record-icon">⏹</span>
+                                Dayandır
+                            </button>
+                        </div>
+                        <div class="record-status">
+                            <div class="record-indicator hidden">
+                                <span class="record-dot"></span>
+                                Yazılır: <span class="summary-record-time">00:00</span>
+                            </div>
+                        </div>
+                        <div class="record-preview hidden">
+                            <p class="preview-title">Səs Yazını Dinlə</p>
+                            <div class="audio-controls">
+                                <audio id="summaryAudioPreview" controls>
+                                    Brauzeriniz audio elementini dəstəkləmir.
+                                </audio>
+                                <button class="process-button preview-process-button">Mətnə Çevir</button>
+                            </div>
+                        </div>
+                        <p class="duration-note" style="color: #dc2626; font-size: 0.9rem; margin-top: 1rem;">⚠️ Audio faylın uzunluğu 5 dəqiqədən çox olmamalıdır</p>
                     </div>
+                </div>
+
+                <div id="summaryFileInfo" class="file-info hidden">
+                    <p>Seçilmiş fayl: <span id="summaryFileName"></span></p>
+                    <button id="summaryProcessButton" class="process-button">Xülasə Yarat</button>
                 </div>
             </div>
 
