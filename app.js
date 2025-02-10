@@ -577,7 +577,7 @@ ttsGenerateButton.addEventListener('click', async () => {
         
         // Make API request with query parameter
         const response = await fetch(`${API_BASE_URL}/text-to-speech/?text=${encodeURIComponent(text)}`, {
-            method: 'POST'
+            method: 'GET'
         });
         
         if (!response.ok) {
