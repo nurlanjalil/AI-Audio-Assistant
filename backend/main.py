@@ -1,6 +1,6 @@
-from fastapi import FastAPI, UploadFile, HTTPException, File, Request
+from fastapi import FastAPI, UploadFile, HTTPException, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse
 from openai import OpenAI
 from pydub import AudioSegment
 import os
@@ -11,7 +11,6 @@ import logging
 import sys
 from typing import Dict, Optional
 import httpx
-import base64
 
 # Configure detailed logging
 logging.basicConfig(
@@ -72,8 +71,7 @@ async def root():
             "/health": "Health check endpoint",
             "/transcribe-azerbaijani/": "Convert Azerbaijani speech to text",
             "/summarize-audio/": "Transcribe and summarize audio content",
-            "/transcribe-live/": "Convert live recorded Azerbaijani speech to text",
-            "/text-to-speech": "Convert text to speech"
+            "/transcribe-live/": "Convert live recorded Azerbaijani speech to text"
         }
     }
 
@@ -152,46 +150,6 @@ async def transcribe_live(file: UploadFile = File(...)):
     Optimized for real-time audio processing.
     """
     return await transcribe_azerbaijani(file, live_recording=True)
-
-@app.post("/text-to-speech")
-async def text_to_speech(request: Request):
-    """
-    Endpoint for converting text to speech using OpenAI's TTS API.
-    """
-    logger.info("Text-to-speech endpoint accessed")
-    try:
-        data = await request.json()
-        text = data.get('text', '')
-        logger.info(f"Received text for TTS: {text[:50]}...")  # Log first 50 chars
-        
-        if not text:
-            logger.warning("No text provided for TTS")
-            raise HTTPException(status_code=400, detail="No text provided")
-
-        logger.info("Creating speech using OpenAI API")
-        # Create speech using OpenAI API
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
-            input=text
-        )
-        
-        # Get the speech data as bytes
-        audio_data = response.content
-        logger.info("Successfully generated speech audio")
-        
-        # Convert to base64 for sending to frontend
-        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
-        logger.info("Successfully encoded audio to base64")
-        
-        return JSONResponse({
-            'audio': audio_base64,
-            'message': 'Speech generated successfully'
-        })
-
-    except Exception as e:
-        logger.error(f"Error in text-to-speech: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Text-to-speech error: {str(e)}")
 
 async def save_audio_file(file: UploadFile) -> str:
     """
