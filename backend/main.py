@@ -1,6 +1,6 @@
-from fastapi import FastAPI, UploadFile, HTTPException, File, Form, Query
+from fastapi import FastAPI, UploadFile, HTTPException, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse
 from openai import OpenAI
 from pydub import AudioSegment
 import os
@@ -150,65 +150,6 @@ async def transcribe_live(file: UploadFile = File(...)):
     Optimized for real-time audio processing.
     """
     return await transcribe_azerbaijani(file, live_recording=True)
-
-@app.post("/text-to-speech/")
-@app.get("/text-to-speech/")
-async def text_to_speech(text: str = Query(None)):
-    """
-    Convert text to speech using OpenAI's TTS API.
-    Optimized for Azerbaijani language support.
-    """
-    if not text or not text.strip():
-        raise HTTPException(status_code=400, detail="Text cannot be empty")
-    
-    logger.info(f"Received TTS request for text: {text[:50]}...")
-    
-    try:
-        # Generate speech using OpenAI's TTS
-        response = client.audio.speech.create(
-            model="tts-1-hd",  # Using HD model for better quality
-            voice="nova",  # Nova voice works better for non-English
-            input=text,
-            speed=1.0,
-            response_format="mp3"
-        )
-        
-        # Create a unique filename using first few words of text
-        text_preview = text.split()[:3]
-        text_preview = "_".join(text_preview)[:30]
-        filename = f"tts_{text_preview}_{uuid.uuid4()[:8]}.mp3"
-        temp_path = os.path.join(TEMP_DIR, filename)
-        
-        # Save the audio file
-        response.stream_to_file(temp_path)
-        
-        # Read the file and return it as a response
-        with open(temp_path, "rb") as audio_file:
-            content = audio_file.read()
-            
-        # Cleanup
-        os.remove(temp_path)
-        
-        # Return audio file as response
-        headers = {
-            "Content-Disposition": f"attachment; filename={filename}",
-            "Content-Type": "audio/mpeg",
-            "Access-Control-Expose-Headers": "Content-Disposition, Content-Length",
-            "Content-Length": str(len(content))
-        }
-        
-        return Response(
-            content=content,
-            media_type="audio/mpeg",
-            headers=headers
-        )
-        
-    except Exception as e:
-        logger.error(f"Error in text-to-speech conversion: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Text-to-speech error: {str(e)}"
-        )
 
 async def save_audio_file(file: UploadFile) -> str:
     """
