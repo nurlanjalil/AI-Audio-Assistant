@@ -67,6 +67,13 @@ const summaryRecordIndicator = document.querySelector('#summary-record-content .
 const summaryRecordPreview = document.querySelector('#summary-record-content .record-preview');
 const summaryAudioPreview = document.getElementById('summaryAudioPreview');
 
+// Text-to-Speech Elements
+const ttsInput = document.getElementById('ttsInput');
+const ttsGenerateButton = document.getElementById('ttsGenerateButton');
+const ttsResult = document.getElementById('ttsResult');
+const ttsAudio = document.getElementById('ttsAudio');
+const ttsNewButton = document.getElementById('ttsNewButton');
+
 // Tab Handling
 tabButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -519,6 +526,14 @@ function resetUI() {
     // Clear recorded files
     currentRecordedFile = null;
     currentSummaryRecordedFile = null;
+    
+    // Reset TTS UI
+    if (ttsInput) {
+        ttsInput.value = '';
+        ttsInput.disabled = false;
+        ttsResult.classList.add('hidden');
+        ttsAudio.src = '';
+    }
 }
 
 // Copy Button Handlers
@@ -543,4 +558,117 @@ document.querySelectorAll('.preview-process-button').forEach(button => {
         const isSummary = button.closest('#summarizer') !== null;
         processAudioFile(isSummary);
     });
+});
+
+// Text-to-Speech Handlers
+ttsGenerateButton.addEventListener('click', async () => {
+    const text = ttsInput.value.trim();
+    
+    if (!text) {
+        alert('Zəhmət olmasa mətn daxil edin.');
+        return;
+    }
+    
+    try {
+        // Show loading state
+        ttsGenerateButton.disabled = true;
+        loadingContainer.classList.remove('hidden');
+        loadingContainer.querySelector('p').textContent = 'Səs yaradılır, zəhmət olmasa gözləyin..';
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('text', text);
+        
+        // Make API request with form data
+        const response = await fetch(`${API_BASE_URL}/text-to-speech/`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Səs yaratma xətası');
+        }
+        
+        // Get audio blob and create URL
+        const audioBlob = await response.blob();
+        if (audioBlob.size === 0) {
+            throw new Error('Boş audio faylı yaradıldı');
+        }
+        
+        // Get filename from response headers
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const filename = contentDisposition ? 
+            contentDisposition.split('filename=')[1].replace(/['"]/g, '') : 
+            'audio.mp3';
+        
+        // Revoke previous URL if exists
+        if (ttsAudio.src) {
+            URL.revokeObjectURL(ttsAudio.src);
+        }
+        
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Update audio player
+        ttsAudio.src = audioUrl;
+        
+        // Show result
+        ttsResult.classList.remove('hidden');
+        ttsInput.disabled = true;
+        
+        // Create download button if it doesn't exist
+        let downloadButton = document.getElementById('ttsDownloadButton');
+        if (!downloadButton) {
+            downloadButton = document.createElement('button');
+            downloadButton.id = 'ttsDownloadButton';
+            downloadButton.className = 'download-button';
+            downloadButton.innerHTML = 'Yüklə <span class="download-icon">⬇️</span>';
+            ttsResult.querySelector('.tts-audio-player').appendChild(downloadButton);
+        }
+        
+        // Update download button
+        downloadButton.onclick = () => {
+            const a = document.createElement('a');
+            a.href = audioUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+        
+        // Add event listener for successful audio load
+        ttsAudio.onloadeddata = () => {
+            loadingContainer.classList.add('hidden');
+            ttsGenerateButton.disabled = false;
+        };
+        
+        // Add error handler for audio loading
+        ttsAudio.onerror = () => {
+            throw new Error('Audio faylı yüklənə bilmədi');
+        };
+        
+    } catch (error) {
+        console.error('TTS Error:', error);
+        alert(`Səs yaratma zamanı xəta baş verdi: ${error.message}`);
+        
+        // Reset UI on error
+        ttsInput.disabled = false;
+        ttsResult.classList.add('hidden');
+        if (ttsAudio.src) {
+            URL.revokeObjectURL(ttsAudio.src);
+            ttsAudio.src = '';
+        }
+    } finally {
+        // Hide loading state
+        loadingContainer.classList.add('hidden');
+        ttsGenerateButton.disabled = false;
+    }
+});
+
+ttsNewButton.addEventListener('click', () => {
+    // Reset UI for new TTS
+    ttsInput.value = '';
+    ttsInput.disabled = false;
+    ttsResult.classList.add('hidden');
+    ttsAudio.src = '';
 }); 

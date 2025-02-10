@@ -31,6 +31,10 @@
                     <span class="tab-icon">✨</span>
                     Audio Xülasə
                 </button>
+                <button class="tab-button" data-tab="text-to-speech">
+                    <span class="tab-icon">🔊</span>
+                    Mətni səsə çevir
+                </button>
             </div>
 
             <div class="tab-content active" id="speech-to-text">
@@ -141,6 +145,37 @@
                 <div id="summaryFileInfo" class="file-info hidden">
                     <p>Seçilmiş fayl: <span id="summaryFileName"></span></p>
                     <button id="summaryProcessButton" class="process-button">Xülasə Yarat</button>
+                </div>
+            </div>
+
+            <div class="tab-content" id="text-to-speech">
+                <div class="tts-container">
+                    <div class="tts-input-section">
+                        <h3>Səsləndirmək istədiyiniz mətni daxil edin</h3>
+                        <textarea 
+                            id="ttsInput" 
+                            class="tts-textarea" 
+                            placeholder="Mətn daxil edin..."
+                            rows="6"
+                        ></textarea>
+                        <div class="tts-controls">
+                            <button id="ttsGenerateButton" class="process-button">
+                                Səsə Çevir
+                            </button>
+                            <p class="tts-note">OpenAI TTS texnologiyası ilə təbii səsləndirmə</p>
+                        </div>
+                    </div>
+                    <div id="ttsResult" class="tts-result hidden">
+                        <h3>Səs Nəticəsi</h3>
+                        <div class="tts-audio-player">
+                            <audio id="ttsAudio" controls>
+                                Brauzeriniz audio elementini dəstəkləmir.
+                            </audio>
+                        </div>
+                        <button id="ttsNewButton" class="new-file-button">
+                            Yeni Mətn Səsləndir
+                        </button>
+                    </div>
                 </div>
             </div>
 
