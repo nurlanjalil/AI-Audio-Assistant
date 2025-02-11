@@ -43,7 +43,11 @@ logger.info("CORS configured")
 
 # Configure OpenAI
 try:
-    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    # Initialize OpenAI client with basic configuration
+    client = OpenAI(
+        api_key=os.getenv('OPENAI_API_KEY'),
+        base_url="https://api.openai.com/v1"  # Explicitly set the base URL
+    )
     logger.info("OpenAI API key configured successfully")
     
     # Create assistants for different tasks
@@ -83,6 +87,9 @@ try:
 except Exception as e:
     logger.error(f"Error configuring OpenAI client: {str(e)}")
     logger.error(f"Environment: OPENAI_API_KEY={'*' * 5 if os.getenv('OPENAI_API_KEY') else 'Not Set'}")
+    # Log more details about the environment
+    logger.error(f"Python version: {sys.version}")
+    logger.error(f"OpenAI client version: {OpenAI.__version__ if hasattr(OpenAI, '__version__') else 'unknown'}")
     raise Exception(f"OpenAI API key configuration failed: {str(e)}")
 
 # Temporary storage
