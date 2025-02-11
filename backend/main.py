@@ -159,7 +159,17 @@ async def save_audio_file(file: UploadFile) -> str:
     temp_path = os.path.join(TEMP_DIR, f"{process_id}_{file.filename}")
     
     try:
+        # Read file content
         content = await file.read()
+        
+        # Check file size (25MB limit)
+        file_size_mb = len(content) / (1024 * 1024)  # Convert to MB
+        if file_size_mb > 25:
+            raise HTTPException(
+                status_code=413,
+                detail="Audio faylın həcmi 25MB-dan çox ola bilməz"
+            )
+            
         with open(temp_path, "wb") as buffer:
             buffer.write(content)
         
@@ -167,11 +177,11 @@ async def save_audio_file(file: UploadFile) -> str:
         audio = AudioSegment.from_file(temp_path)
         duration_seconds = len(audio) / 1000  # Convert milliseconds to seconds
         
-        if duration_seconds > 300:  # 5 minutes
+        if duration_seconds > 180:  # 3 minutes
             os.remove(temp_path)
             raise HTTPException(
                 status_code=400,
-                detail="Audio file duration must not exceed 5 minutes"
+                detail="Audio faylın uzunluğu 3 dəqiqədən çox ola bilməz"
             )
         
         # Convert to WAV if needed
@@ -182,9 +192,19 @@ async def save_audio_file(file: UploadFile) -> str:
             temp_path = wav_path
             
         return temp_path
+    except HTTPException:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise
     except Exception as e:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+        # Check if it's a file size error from OpenAI
+        if "Maximum content size limit" in str(e):
+            raise HTTPException(
+                status_code=413,
+                detail="Audio faylın həcmi 25MB-dan çox ola bilməz"
+            )
         raise e
 
 async def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
@@ -259,7 +279,7 @@ async def correct_transcript(transcript: str) -> str:
 
                     **Key Instructions:**
                     1. Fix any misinterpretations caused by phonetic errors.
-                    2. Correct grammar, punctuation, and word usage **without changing the speaker’s word choices whenever possible**.
+                    2. Correct grammar, punctuation, and word usage **without changing the speaker's word choices whenever possible**.
                     3. **Preserve all spoken words, including filler words, unless they are clearly incorrect.**
                     4. Replace incorrect words with **phonetically similar and contextually relevant** alternatives **only when necessary**.
                     5. Apply proper capitalization, sentence structure, and paragraph formatting.
