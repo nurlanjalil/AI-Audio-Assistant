@@ -6,6 +6,7 @@
     <title>AI Audio Assistenti</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body>
     <div class="container">
@@ -17,7 +18,7 @@
         </div>
 
         <header>
-            <h1>🎙️ AI Audio Assistenti</h1>
+            <h1><img src="logo.png" alt="AI Audio Assistant Logo" style="height: 1.5em; vertical-align: middle;"> AI Audio Assistenti</h1>
             <p class="subtitle">Azərbaycan dilində səsi mətnə çevir və ya AI ilə xülasə et</p>
         </header>
 
@@ -67,12 +68,12 @@
                         <div class="record-status">
                             <div class="record-indicator hidden">
                                 <span class="record-dot"></span>
-                                Yazılır: <span class="record-time">00:00</span>
+                                Səs yazılır: <span class="record-time">00:00</span>
                             </div>
                         </div>
                         <div class="record-preview hidden">
                             <p class="preview-title">Səs Yazını Dinlə</p>
-                            <div class="audio-player">
+                            <div class="audio-controls">
                                 <audio id="audioPreview" controls>
                                     Brauzeriniz audio elementini dəstəkləmir.
                                 </audio>
@@ -122,18 +123,19 @@
                         <div class="record-status">
                             <div class="record-indicator hidden">
                                 <span class="record-dot"></span>
-                                Yazılır: <span class="summary-record-time">00:00</span>
+                                Səs yazılır: <span class="summary-record-time">00:00</span>
                             </div>
                         </div>
                         <div class="record-preview hidden">
                             <p class="preview-title">Səs Yazını Dinlə</p>
-                            <div class="audio-player">
+                            <div class="audio-controls">
                                 <audio id="summaryAudioPreview" controls>
                                     Brauzeriniz audio elementini dəstəkləmir.
                                 </audio>
-                                <button class="process-button preview-process-button">Xülasə Yarat</button>
+                                <button class="process-button preview-process-button">Mətnə Çevir</button>
                             </div>
                         </div>
+                        <p class="duration-note" style="color: #dc2626; font-size: 0.9rem; margin-top: 1rem;">⚠️ Audio faylın uzunluğu 5 dəqiqədən çox olmamalıdır</p>
                     </div>
                 </div>
 
@@ -166,10 +168,11 @@
         </main>
 
         <footer>
-            <p>OpenAI Whisper və GPT-4o texnologiyaları ilə işləyir</p>
         </footer>
     </div>
 
     <script src="app.js"></script>
+    <script data-goatcounter="https://nurlanjalil.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
 </body>
 </html> 

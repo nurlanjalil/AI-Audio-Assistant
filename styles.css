@@ -359,8 +359,7 @@ footer {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
     border-top: 1px solid var(--border-color);
-    max-height: 150px;
-    overflow-y: auto;
+    overflow: visible;
 }
 
 .audio-player {
@@ -493,4 +492,49 @@ footer {
     .donate-logo {
         width: 32px;
     }
+}
+
+.audio-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    max-width: 100%;
+    overflow: visible;
+}
+
+.audio-controls audio {
+    width: 100%;
+    min-width: 0;
+}
+
+.audio-controls .preview-process-button {
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .audio-controls {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .audio-controls audio {
+        width: 100%;
+    }
+
+    .audio-controls .preview-process-button {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .record-preview {
+        padding: 1rem 0;
+    }
+}
+
+/* Ensure audio player has consistent height */
+audio {
+    height: 40px;
 } 

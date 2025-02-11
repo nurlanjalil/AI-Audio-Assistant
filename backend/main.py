@@ -91,10 +91,10 @@ async def transcribe_azerbaijani(
         # Process audio file
         temp_path = await save_audio_file(file)
         
-        # Transcribe with Whisper Large v3 (best model for Azerbaijani)
-        raw_transcript = await transcribe_audio(temp_path, model="whisper-large-v3", language="az")
+        # Transcribe with Whisper (optimized for Azerbaijani)
+        raw_transcript = await transcribe_audio(temp_path, "azerbaijani")
         
-        # Correct the transcript using GPT-4o
+        # Correct the transcript using GPT-4
         corrected_transcript = await correct_transcript(raw_transcript)
         
         # Cleanup
@@ -159,37 +159,67 @@ async def save_audio_file(file: UploadFile) -> str:
     temp_path = os.path.join(TEMP_DIR, f"{process_id}_{file.filename}")
     
     try:
+        # Read file content
         content = await file.read()
+        
+        # Check file size (25MB limit)
+        file_size_mb = len(content) / (1024 * 1024)  # Convert to MB
+        if file_size_mb > 25:
+            raise HTTPException(
+                status_code=413,
+                detail="Audio faylın həcmi 25MB-dan çox ola bilməz"
+            )
+            
         with open(temp_path, "wb") as buffer:
             buffer.write(content)
         
+        # Check audio duration
+        audio = AudioSegment.from_file(temp_path)
+        duration_seconds = len(audio) / 1000  # Convert milliseconds to seconds
+        
+        if duration_seconds > 300:  # 5 minutes
+            os.remove(temp_path)
+            raise HTTPException(
+                status_code=400,
+                detail="Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz"
+            )
+        
         # Convert to WAV if needed
         if not file.filename.lower().endswith('.wav'):
-            audio = AudioSegment.from_file(temp_path)
             wav_path = os.path.join(TEMP_DIR, f"{process_id}.wav")
             audio.export(wav_path, format="wav")
             os.remove(temp_path)
             temp_path = wav_path
             
         return temp_path
+    except HTTPException:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise
     except Exception as e:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+        # Check if it's a file size error from OpenAI
+        if "Maximum content size limit" in str(e):
+            raise HTTPException(
+                status_code=413,
+                detail="Audio faylın həcmi 25MB-dan çox ola bilməz"
+            )
         raise e
 
 async def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
     """
-    Transcribe audio using OpenAI Whisper API.
-    Uses the best model for Azerbaijani when specified.
+    Transcribe audio using Whisper API.
+    Optimized for Azerbaijani when specified.
     """
     try:
         with open(file_path, "rb") as audio_file:
             response = client.audio.transcriptions.create(
-                model="whisper-large-v3",  # Upgraded to the best Whisper model
+                model="whisper-1",
                 file=audio_file,
                 response_format="text",
-                language="az" if language == "azerbaijani" else language,  # Ensuring proper Azerbaijani language code
-                prompt="Bu mətn Azərbaycan dilindədir. Lütfən, dəqiq şəkildə transkripsiya edin."  # Improved Azerbaijani prompt
+                language="az" if language == "azerbaijani" else language,
+                prompt="This is Azerbaijani speech. Please transcribe accurately."
             )
         return response
 
@@ -225,8 +255,8 @@ async def generate_summary(transcript: str) -> str:
                     "content": f"Provide a concise summary of this text in Azerbaijani:\n\n{transcript}"
                 }
             ],
-            temperature=0.5,  # Adjusted for a more balanced summary generation
-            max_tokens=300  # Limiting token usage for concise summaries
+            temperature=0.5,  # Lowered temperature for more precise summaries
+            max_tokens=300
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -242,24 +272,27 @@ async def correct_transcript(transcript: str) -> str:
         response = client.chat.completions.create(
             model="gpt-4o",  # Using GPT-4o for the best performance
             messages=[
-                {
-                    "role": "system", 
-                    "content": """You are an expert in Azerbaijani language and text formatting.
-                                Your task is to:
-                                1. Correct any errors in voice-to-text transcriptions
-                                2. Fix grammar, punctuation, and word choice errors
-                                3. Format the text properly with paragraphs where appropriate
-                                4. Add proper capitalization and sentence structure
-                                5. Maintain natural speech flow while improving clarity
-                                
-                                Guidelines:
-                                - Keep the text in Azerbaijani language
-                                - Preserve the original meaning and context
-                                - Use proper Azerbaijani punctuation rules
-                                - Break long sentences into more readable ones
-                                - Add paragraphs for better readability
-                                
-                                Return ONLY the corrected and formatted text, without any explanations."""
+                    {
+                    "role": "system",
+                    "content": """You are an expert in Azerbaijani language, phonetics, and natural speech processing.
+                    Your task is to correct errors in a voice-to-text transcript while keeping the spoken structure intact.
+
+                    **Key Instructions:**
+                    1. Fix any misinterpretations caused by phonetic errors.
+                    2. Correct grammar, punctuation, and word usage **without changing the speaker's word choices whenever possible**.
+                    3. **Preserve all spoken words, including filler words, unless they are clearly incorrect.**
+                    4. Replace incorrect words with **phonetically similar and contextually relevant** alternatives **only when necessary**.
+                    5. Apply proper capitalization, sentence structure, and paragraph formatting.
+                    6. Break long sentences into shorter, more readable ones while maintaining the speaker's intent.
+                    7. Ensure the final text flows naturally and reads as authentic Azerbaijani speech.
+
+                    **Guidelines:**
+                    - Do **not** remove or replace words unless they are transcription errors or grammatically incorrect.
+                    - Apply correct Azerbaijani punctuation and spacing.
+                    - Avoid changing the original tone or intent of the text.
+                    - When in doubt, prioritize grammatical accuracy while preserving the original wording.
+
+                    Return only the corrected transcript with proper formatting. No explanations."""
                 },
                 {
                     "role": "user", 
@@ -267,7 +300,7 @@ async def correct_transcript(transcript: str) -> str:
                 }
             ],
             temperature=0.3,  # Lower temperature for more consistent corrections
-            max_tokens=1500   # Increased token limit for longer texts
+            max_tokens=2000   # Increased token limit for longer texts
         )
         return response.choices[0].message.content.strip()
     except Exception as e:

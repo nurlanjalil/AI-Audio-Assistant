@@ -17,11 +17,15 @@ let recordingTimer = null;
 let recordingStartTime = null;
 const MAX_RECORDING_TIME = 300; // 5 minutes in seconds
 
-// Global variables for summary
+// Add new global variables for summary recording
 let summaryMediaRecorder = null;
 let summaryAudioChunks = [];
 let summaryRecordingTimer = null;
 let summaryRecordingStartTime = null;
+
+// Add new global variables for recorded files
+let currentRecordedFile = null;
+let currentSummaryRecordedFile = null;
 
 // DOM Elements
 const tabButtons = document.querySelectorAll('.tab-button');
@@ -53,7 +57,9 @@ const recordTime = document.querySelector('.record-time');
 const recordPreview = document.querySelector('.record-preview');
 const audioPreview = document.getElementById('audioPreview');
 
-// Additional DOM Elements for summary
+// Add new DOM elements
+const summaryMethodButtons = document.querySelectorAll('#summarizer .method-button');
+const summaryMethodContents = document.querySelectorAll('#summarizer .method-content');
 const summaryStartRecord = document.getElementById('summaryStartRecord');
 const summaryStopRecord = document.getElementById('summaryStopRecord');
 const summaryRecordTime = document.querySelector('.summary-record-time');
@@ -66,6 +72,12 @@ tabButtons.forEach(button => {
     button.addEventListener('click', () => {
         const tab = button.dataset.tab;
         
+        // Show coming soon message for summarization tab
+        if (tab === 'audio-summary') {
+            alert('Audio xülasə funksiyası tezliklə əlavə olunacaq! 🚀');
+            return;
+        }
+        
         tabButtons.forEach(btn => btn.classList.remove('active'));
         tabContents.forEach(content => content.classList.remove('active'));
         
@@ -77,25 +89,39 @@ tabButtons.forEach(button => {
     });
 });
 
-// Method Selection Handling for both tabs
-document.querySelectorAll('.method-button').forEach(button => {
+// Method Selection Handling
+methodButtons.forEach(button => {
     button.addEventListener('click', () => {
         const method = button.dataset.method;
-        const tabContent = button.closest('.tab-content');
         
-        // Reset only the buttons and contents within the current tab
-        tabContent.querySelectorAll('.method-button').forEach(btn => btn.classList.remove('active'));
-        tabContent.querySelectorAll('.method-content').forEach(content => content.classList.remove('active'));
+        methodButtons.forEach(btn => btn.classList.remove('active'));
+        methodContents.forEach(content => content.classList.remove('active'));
         
         button.classList.add('active');
         document.getElementById(`${method}-content`).classList.add('active');
         
-        // Reset recording UI based on the tab
-        if (method.startsWith('summary')) {
-            resetSummaryRecordingUI();
-        } else {
-            resetRecordingUI();
+        // Reset everything when switching methods
+        fileInput.value = '';
+        fileName.textContent = '';
+        fileInfo.classList.add('hidden');
+        dropZone.classList.remove('hidden');
+        
+        // Reset recording UI when switching
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            stopRecording();
         }
+        startRecord.disabled = false;
+        stopRecord.disabled = true;
+        recordIndicator.classList.add('hidden');
+        startRecord.classList.remove('recording');
+        recordPreview.classList.add('hidden');
+        audioPreview.src = '';
+        clearInterval(recordingTimer);
+        recordTime.textContent = '00:00';
+        
+        // Hide result container when switching methods
+        resultContainer.classList.add('hidden');
+        loadingContainer.classList.add('hidden');
     });
 });
 
@@ -179,37 +205,6 @@ stopRecord.addEventListener('click', () => {
     recordTime.textContent = '00:00';
 });
 
-// Summary Recording Handlers
-summaryStartRecord.addEventListener('click', async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        startSummaryRecording(stream);
-        
-        summaryStartRecord.disabled = true;
-        summaryStopRecord.disabled = false;
-        summaryRecordIndicator.classList.remove('hidden');
-        summaryStartRecord.classList.add('recording');
-        summaryRecordPreview.classList.add('hidden');
-        summaryProcessButton.classList.add('hidden');
-        
-        summaryRecordingStartTime = Date.now();
-        summaryRecordingTimer = setInterval(updateSummaryRecordingTime, 1000);
-    } catch (error) {
-        console.error('Error accessing microphone:', error);
-        alert('Mikrofona çıxış xətası. Xahiş edirik mikrofon icazələrinin verildiyindən əmin olun.');
-    }
-});
-
-summaryStopRecord.addEventListener('click', () => {
-    stopSummaryRecording();
-    summaryStartRecord.disabled = false;
-    summaryStopRecord.disabled = true;
-    summaryRecordIndicator.classList.add('hidden');
-    summaryStartRecord.classList.remove('recording');
-    clearInterval(summaryRecordingTimer);
-    summaryRecordTime.textContent = '00:00';
-});
-
 // File Selection Handler
 function handleFileSelection(file, isSummary) {
     if (!file) return;
@@ -222,16 +217,22 @@ function handleFileSelection(file, isSummary) {
         return;
     }
 
+    // Check file size (25MB = 25 * 1024 * 1024 bytes)
+    if (file.size > 25 * 1024 * 1024) {
+        alert('Audio faylın həcmi 25MB-dan çox ola bilməz');
+        resetUI();
+        return;
+    }
+
     // Only check duration for uploaded files, not for recordings
     if (!file.name.startsWith('recording.wav')) {
-        // Create audio element to check duration
         const audio = new Audio();
         const objectUrl = URL.createObjectURL(file);
         
         audio.addEventListener('loadedmetadata', () => {
             URL.revokeObjectURL(objectUrl);
             
-            if (audio.duration > MAX_RECORDING_TIME) {
+            if (audio.duration > 300) {
                 alert('Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz.');
                 resetUI();
                 return;
@@ -243,7 +244,6 @@ function handleFileSelection(file, isSummary) {
 
         audio.src = objectUrl;
     } else {
-        // For recordings, directly update UI
         updateUIAfterFileSelection(file, isSummary);
     }
 }
@@ -253,7 +253,7 @@ function updateUIAfterFileSelection(file, isSummary) {
     if (isSummary) {
         summaryFileName.textContent = file.name;
         summaryFileInfo.classList.remove('hidden');
-        summaryDropZone.classList.add('hidden');
+        summaryDropZone.querySelector('.upload-content').classList.add('hidden');
         summaryProcessButton.classList.remove('hidden');
     } else {
         fileName.textContent = file.name;
@@ -269,13 +269,10 @@ function updateUIAfterFileSelection(file, isSummary) {
 async function processAudioFile(isSummary) {
     let file;
     
-    // Check for recorded audio first
-    if (audioChunks.length > 0 && !isSummary) {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+    if (isSummary) {
+        file = currentSummaryRecordedFile || summaryFileInput.files[0];
     } else {
-        // If no recording, check for uploaded file
-        file = isSummary ? summaryFileInput.files[0] : fileInput.files[0];
+        file = currentRecordedFile || fileInput.files[0];
     }
     
     if (!file) {
@@ -331,9 +328,16 @@ async function processAudioFile(isSummary) {
     } catch (error) {
         console.error('Detailed error:', error);
         let errorMessage = error.message;
+        
+        // Handle specific error cases
         if (error instanceof TypeError && error.message.includes('fetch')) {
             errorMessage = 'Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.';
+        } else if (errorMessage.includes('413') || errorMessage.includes('Maximum content size limit')) {
+            errorMessage = 'The audio file is too large. Please try compressing the file or using a shorter audio clip (maximum size: 25MB).';
+        } else if (errorMessage.includes('duration')) {
+            errorMessage = 'Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz';
         }
+        
         alert(`Xəta: ${errorMessage}`);
         
         // Restore UI on error
@@ -359,19 +363,15 @@ function startRecording(stream) {
 
     mediaRecorder.addEventListener('stop', () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+        currentRecordedFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
         
         // Create audio preview
         const audioUrl = URL.createObjectURL(audioBlob);
         audioPreview.src = audioUrl;
         recordPreview.classList.remove('hidden');
         
-        // Add click handler for preview process button
-        const previewProcessButton = recordPreview.querySelector('.preview-process-button');
-        previewProcessButton.onclick = () => {
-            handleFileSelection(file, false);
-            processButton.click();
-        };
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach(track => track.stop());
     });
 
     mediaRecorder.start(100);
@@ -396,6 +396,54 @@ function updateRecordingTime() {
     }
 }
 
+// Add method button handlers for summary tab
+summaryMethodButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const method = button.dataset.method;
+        
+        summaryMethodButtons.forEach(btn => btn.classList.remove('active'));
+        summaryMethodContents.forEach(content => content.classList.remove('active'));
+        
+        button.classList.add('active');
+        document.getElementById(`${method}-content`).classList.add('active');
+        
+        // Reset UI when switching methods
+        resetSummaryUI();
+    });
+});
+
+// Add recording handlers for summary tab
+summaryStartRecord.addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        startSummaryRecording(stream);
+        
+        summaryStartRecord.disabled = true;
+        summaryStopRecord.disabled = false;
+        summaryRecordIndicator.classList.remove('hidden');
+        summaryStartRecord.classList.add('recording');
+        summaryRecordPreview.classList.add('hidden');
+        summaryProcessButton.classList.add('hidden');
+        
+        summaryRecordingStartTime = Date.now();
+        summaryRecordingTimer = setInterval(updateSummaryRecordingTime, 1000);
+    } catch (error) {
+        console.error('Error accessing microphone:', error);
+        alert('Mikrofona çıxış xətası. Xahiş edirik mikrofon icazələrinin verildiyindən əmin olun.');
+    }
+});
+
+summaryStopRecord.addEventListener('click', () => {
+    stopSummaryRecording();
+    summaryStartRecord.disabled = false;
+    summaryStopRecord.disabled = true;
+    summaryRecordIndicator.classList.add('hidden');
+    summaryStartRecord.classList.remove('recording');
+    clearInterval(summaryRecordingTimer);
+    summaryRecordTime.textContent = '00:00';
+});
+
+// Add recording functions for summary tab
 function startSummaryRecording(stream) {
     summaryAudioChunks = [];
     summaryMediaRecorder = new MediaRecorder(stream);
@@ -406,18 +454,13 @@ function startSummaryRecording(stream) {
 
     summaryMediaRecorder.addEventListener('stop', () => {
         const audioBlob = new Blob(summaryAudioChunks, { type: 'audio/wav' });
-        const file = new File([audioBlob], 'summary-recording.wav', { type: 'audio/wav' });
+        currentSummaryRecordedFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
         
         const audioUrl = URL.createObjectURL(audioBlob);
         summaryAudioPreview.src = audioUrl;
         summaryRecordPreview.classList.remove('hidden');
         
-        // Add click handler for preview process button
-        const previewProcessButton = summaryRecordPreview.querySelector('.preview-process-button');
-        previewProcessButton.onclick = () => {
-            handleFileSelection(file, true);
-            summaryProcessButton.click();
-        };
+        stream.getTracks().forEach(track => track.stop());
     });
 
     summaryMediaRecorder.start(100);
@@ -441,21 +484,27 @@ function updateSummaryRecordingTime() {
     }
 }
 
-function resetSummaryRecordingUI() {
-    if (summaryMediaRecorder && summaryMediaRecorder.state !== 'inactive') {
-        stopSummaryRecording();
-    }
-    summaryStartRecord.disabled = false;
-    summaryStopRecord.disabled = true;
-    summaryRecordIndicator.classList.add('hidden');
-    summaryStartRecord.classList.remove('recording');
-    summaryRecordPreview.classList.add('hidden');
-    summaryAudioPreview.src = '';
-    clearInterval(summaryRecordingTimer);
-    summaryRecordTime.textContent = '00:00';
-}
-
-function resetRecordingUI() {
+// Reset UI
+function resetUI() {
+    fileInput.value = '';
+    summaryFileInput.value = '';
+    fileName.textContent = '';
+    summaryFileName.textContent = '';
+    fileInfo.classList.add('hidden');
+    summaryFileInfo.classList.add('hidden');
+    loadingContainer.classList.add('hidden');
+    resultContainer.classList.add('hidden');
+    transcriptContent.textContent = '';
+    summaryContent.textContent = '';
+    processButton.classList.add('hidden');
+    summaryProcessButton.classList.add('hidden');
+    
+    // Show upload areas again
+    dropZone.classList.remove('hidden');
+    summaryDropZone.querySelector('.upload-content').classList.remove('hidden');
+    document.querySelector('.method-selector').classList.remove('hidden');
+    
+    // Reset recording UI
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         stopRecording();
     }
@@ -467,32 +516,23 @@ function resetRecordingUI() {
     audioPreview.src = '';
     clearInterval(recordingTimer);
     recordTime.textContent = '00:00';
-}
-
-// Reset UI
-function resetUI() {
-    // Reset speech-to-text tab
-    fileInput.value = '';
-    fileName.textContent = '';
-    fileInfo.classList.add('hidden');
-    dropZone.classList.remove('hidden');
-    document.querySelector('#speech-to-text .method-selector').classList.remove('hidden');
-    resetRecordingUI();
     
-    // Reset summarizer tab
-    summaryFileInput.value = '';
-    summaryFileName.textContent = '';
-    summaryFileInfo.classList.add('hidden');
-    summaryDropZone.classList.remove('hidden');
-    resetSummaryRecordingUI();
+    // Reset summary recording UI
+    if (summaryMediaRecorder && summaryMediaRecorder.state !== 'inactive') {
+        stopSummaryRecording();
+    }
+    summaryStartRecord.disabled = false;
+    summaryStopRecord.disabled = true;
+    summaryRecordIndicator.classList.add('hidden');
+    summaryStartRecord.classList.remove('recording');
+    summaryRecordPreview.classList.add('hidden');
+    summaryAudioPreview.src = '';
+    clearInterval(summaryRecordingTimer);
+    summaryRecordTime.textContent = '00:00';
     
-    // Reset common elements
-    loadingContainer.classList.add('hidden');
-    resultContainer.classList.add('hidden');
-    transcriptContent.textContent = '';
-    summaryContent.textContent = '';
-    processButton.classList.add('hidden');
-    summaryProcessButton.classList.add('hidden');
+    // Clear recorded files
+    currentRecordedFile = null;
+    currentSummaryRecordedFile = null;
 }
 
 // Copy Button Handlers
@@ -508,5 +548,13 @@ document.querySelectorAll('.copy-button').forEach(button => {
                 button.textContent = originalText;
             }, 2000);
         });
+    });
+});
+
+// Add click handlers for the new preview process buttons
+document.querySelectorAll('.preview-process-button').forEach(button => {
+    button.addEventListener('click', () => {
+        const isSummary = button.closest('#summarizer') !== null;
+        processAudioFile(isSummary);
     });
 }); 
