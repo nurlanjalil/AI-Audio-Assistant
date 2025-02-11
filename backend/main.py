@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, HTTPException, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from openai import OpenAI
+import openai
 from pydub import AudioSegment
 import os
 from dotenv import load_dotenv
@@ -10,9 +10,7 @@ import uuid
 import logging
 import sys
 from typing import Dict, Optional
-import httpx
-import json
-from time import sleep
+import time
 
 # Configure detailed logging
 logging.basicConfig(
@@ -43,29 +41,27 @@ logger.info("CORS configured")
 
 # Configure OpenAI
 try:
-    # Initialize OpenAI client with basic configuration
-    client = OpenAI(
-        api_key=os.getenv('OPENAI_API_KEY'),
-        base_url="https://api.openai.com/v1"  # Explicitly set the base URL
-    )
+    # Initialize OpenAI client
+    client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     logger.info("OpenAI API key configured successfully")
     
     # Create assistants for different tasks
     transcript_corrector = client.beta.assistants.create(
         name="Azerbaijani Transcript Corrector",
         instructions="""You are an expert in Azerbaijani language, phonetics, and natural speech processing.
-        Your task is to correct errors in a voice-to-text transcript while keeping the spoken structure intact.
-
+        Your task is to correct errors in voice-to-text transcriptions while keeping the spoken structure intact.
+        
         Key Instructions:
-        1. Fix any misinterpretations caused by phonetic errors
-        2. Correct grammar, punctuation, and word usage without changing the speaker's word choices whenever possible
-        3. Preserve all spoken words, including filler words, unless they are clearly incorrect
-        4. Replace incorrect words with phonetically similar and contextually relevant alternatives only when necessary
-        5. Apply proper capitalization, sentence structure, and paragraph formatting
-        6. Break long sentences into shorter, more readable ones while maintaining the speaker's intent
-        7. Ensure the final text flows naturally and reads as authentic Azerbaijani speech
-
+        - Fix phonetic misinterpretations
+        - Correct grammar, punctuation, and word usage while keeping the speaker's word choices whenever possible
+        - Preserve all spoken words, including filler words, unless they are clearly incorrect
+        - Replace incorrect words with phonetically similar alternatives only when necessary
+        - Apply proper Azerbaijani punctuation and sentence structure
+        - Break long sentences into shorter, more readable ones while maintaining the speaker's intent
+        - Ensure the final text flows naturally and reads as authentic Azerbaijani speech
+        
         Return only the corrected transcript with proper formatting. No explanations.""",
+        tools=[],  # No special tools needed for this task
         model="gpt-4o"
     )
     
@@ -80,6 +76,7 @@ try:
         - Avoiding unnecessary repetition
         
         Return ONLY the summary in Azerbaijani, without additional explanations.""",
+        tools=[],  # No special tools needed for this task
         model="gpt-4o"
     )
     
@@ -87,9 +84,8 @@ try:
 except Exception as e:
     logger.error(f"Error configuring OpenAI client: {str(e)}")
     logger.error(f"Environment: OPENAI_API_KEY={'*' * 5 if os.getenv('OPENAI_API_KEY') else 'Not Set'}")
-    # Log more details about the environment
     logger.error(f"Python version: {sys.version}")
-    logger.error(f"OpenAI client version: {OpenAI.__version__ if hasattr(OpenAI, '__version__') else 'unknown'}")
+    logger.error(f"OpenAI version: {openai.__version__}")
     raise Exception(f"OpenAI API key configuration failed: {str(e)}")
 
 # Temporary storage
@@ -272,7 +268,7 @@ async def generate_summary(transcript: str) -> str:
         thread = client.beta.threads.create()
         
         # Add message to thread
-        client.beta.threads.messages.create(
+        message = client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
             content=f"Please provide a concise summary of this text in Azerbaijani:\n\n{transcript}"
@@ -290,16 +286,19 @@ async def generate_summary(transcript: str) -> str:
                 thread_id=thread.id,
                 run_id=run.id
             )
-            if run_status.status == 'completed':
+            if run_status.status == "completed":
                 break
-            elif run_status.status in ['failed', 'cancelled', 'expired']:
+            elif run_status.status in ["failed", "cancelled", "expired"]:
                 raise Exception(f"Assistant run failed with status: {run_status.status}")
-            sleep(1)
+            time.sleep(1)
         
         # Get the response
         messages = client.beta.threads.messages.list(thread_id=thread.id)
-        assistant_message = next(msg for msg in messages if msg.role == "assistant")
-        return assistant_message.content[0].text.value
+        for msg in messages.data:
+            if msg.role == "assistant":
+                return msg.content[0].text.value
+        
+        raise Exception("No assistant response found")
         
     except Exception as e:
         logger.error(f"Error generating summary: {str(e)}", exc_info=True)
@@ -307,14 +306,14 @@ async def generate_summary(transcript: str) -> str:
 
 async def correct_transcript(transcript: str) -> str:
     """
-    Correct the transcribed text using OpenAI Assistant to fix any voice-to-text errors and improve formatting.
+    Correct the transcribed text using OpenAI Assistant.
     """
     try:
         # Create a thread
         thread = client.beta.threads.create()
         
         # Add message to thread
-        client.beta.threads.messages.create(
+        message = client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
             content=f"Please correct this voice-to-text transcription:\n\n{transcript}"
@@ -332,16 +331,19 @@ async def correct_transcript(transcript: str) -> str:
                 thread_id=thread.id,
                 run_id=run.id
             )
-            if run_status.status == 'completed':
+            if run_status.status == "completed":
                 break
-            elif run_status.status in ['failed', 'cancelled', 'expired']:
+            elif run_status.status in ["failed", "cancelled", "expired"]:
                 raise Exception(f"Assistant run failed with status: {run_status.status}")
-            sleep(1)
+            time.sleep(1)
         
         # Get the response
         messages = client.beta.threads.messages.list(thread_id=thread.id)
-        assistant_message = next(msg for msg in messages if msg.role == "assistant")
-        return assistant_message.content[0].text.value
+        for msg in messages.data:
+            if msg.role == "assistant":
+                return msg.content[0].text.value
+        
+        raise Exception("No assistant response found")
         
     except Exception as e:
         logger.error(f"Error correcting transcript: {str(e)}", exc_info=True)
