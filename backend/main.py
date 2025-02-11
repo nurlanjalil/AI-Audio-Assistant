@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, HTTPException, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import openai
+from openai import OpenAI
 from pydub import AudioSegment
 import os
 from dotenv import load_dotenv
@@ -10,7 +10,7 @@ import uuid
 import logging
 import sys
 from typing import Dict, Optional
-import time
+import httpx
 
 # Configure detailed logging
 logging.basicConfig(
@@ -41,51 +41,19 @@ logger.info("CORS configured")
 
 # Configure OpenAI
 try:
-    # Initialize OpenAI client
-    client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    http_client = httpx.Client(
+        timeout=httpx.Timeout(60.0),
+        follow_redirects=True
+    )
+    
+    client = OpenAI(
+        api_key=os.getenv('OPENAI_API_KEY'),
+        http_client=http_client
+    )
     logger.info("OpenAI API key configured successfully")
-    
-    # Create assistants for different tasks
-    transcript_corrector = client.beta.assistants.create(
-        name="Azerbaijani Transcript Corrector",
-        instructions="""You are an expert in Azerbaijani language, phonetics, and natural speech processing.
-        Your task is to correct errors in voice-to-text transcriptions while keeping the spoken structure intact.
-        
-        Key Instructions:
-        - Fix phonetic misinterpretations
-        - Correct grammar, punctuation, and word usage while keeping the speaker's word choices whenever possible
-        - Preserve all spoken words, including filler words, unless they are clearly incorrect
-        - Replace incorrect words with phonetically similar alternatives only when necessary
-        - Apply proper Azerbaijani punctuation and sentence structure
-        - Break long sentences into shorter, more readable ones while maintaining the speaker's intent
-        - Ensure the final text flows naturally and reads as authentic Azerbaijani speech
-        
-        Return only the corrected transcript with proper formatting. No explanations.""",
-        tools=[],  # No special tools needed for this task
-        model="gpt-4o"
-    )
-    
-    summarizer = client.beta.assistants.create(
-        name="Azerbaijani Content Summarizer",
-        instructions="""You are an expert in Azerbaijani language and summarization.
-        Your task is to generate concise and accurate summaries of transcribed text while:
-        - Maintaining key terminology and cultural context
-        - Keeping the summary in Azerbaijani, preserving the core meaning
-        - Using clear and natural Azerbaijani language
-        - Keeping the summary brief but informative
-        - Avoiding unnecessary repetition
-        
-        Return ONLY the summary in Azerbaijani, without additional explanations.""",
-        tools=[],  # No special tools needed for this task
-        model="gpt-4o"
-    )
-    
-    logger.info("OpenAI Assistants created successfully")
 except Exception as e:
     logger.error(f"Error configuring OpenAI client: {str(e)}")
     logger.error(f"Environment: OPENAI_API_KEY={'*' * 5 if os.getenv('OPENAI_API_KEY') else 'Not Set'}")
-    logger.error(f"Python version: {sys.version}")
-    logger.error(f"OpenAI version: {openai.__version__}")
     raise Exception(f"OpenAI API key configuration failed: {str(e)}")
 
 # Temporary storage
@@ -126,7 +94,7 @@ async def transcribe_azerbaijani(
         # Transcribe with Whisper (optimized for Azerbaijani)
         raw_transcript = await transcribe_audio(temp_path, "azerbaijani")
         
-        # Correct the transcript using GPT-4o
+        # Correct the transcript using GPT-4
         corrected_transcript = await correct_transcript(raw_transcript)
         
         # Cleanup
@@ -261,93 +229,84 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
 
 async def generate_summary(transcript: str) -> str:
     """
-    Generate a summary of the transcribed text using OpenAI Assistant.
+    Generate a summary of the transcribed text using GPT-4o.
     """
     try:
-        # Create a thread
-        thread = client.beta.threads.create()
-        
-        # Add message to thread
-        message = client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=f"Please provide a concise summary of this text in Azerbaijani:\n\n{transcript}"
+        response = client.chat.completions.create(
+            model="gpt-4o",  # Updated to use GPT-4o for better performance
+            messages=[
+                {
+                    "role": "system", 
+                    "content": """You are an expert in Azerbaijani language and summarization.
+                                Your task is to:
+                                - Generate a concise and accurate summary of the transcribed text.
+                                - Maintain key terminology and cultural context.
+                                - Keep the summary in Azerbaijani, preserving the core meaning.
+                                
+                                Guidelines:
+                                - Use clear and natural Azerbaijani language.
+                                - Keep the summary brief but informative.
+                                - Avoid unnecessary repetition.
+                                
+                                Return ONLY the summary in Azerbaijani, without additional explanations."""
+                },
+                {
+                    "role": "user", 
+                    "content": f"Provide a concise summary of this text in Azerbaijani:\n\n{transcript}"
+                }
+            ],
+            temperature=0.5,  # Lowered temperature for more precise summaries
+            max_tokens=300
         )
-        
-        # Run the assistant
-        run = client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=summarizer.id
-        )
-        
-        # Wait for completion
-        while True:
-            run_status = client.beta.threads.runs.retrieve(
-                thread_id=thread.id,
-                run_id=run.id
-            )
-            if run_status.status == "completed":
-                break
-            elif run_status.status in ["failed", "cancelled", "expired"]:
-                raise Exception(f"Assistant run failed with status: {run_status.status}")
-            time.sleep(1)
-        
-        # Get the response
-        messages = client.beta.threads.messages.list(thread_id=thread.id)
-        for msg in messages.data:
-            if msg.role == "assistant":
-                return msg.content[0].text.value
-        
-        raise Exception("No assistant response found")
-        
+        return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Error generating summary: {str(e)}", exc_info=True)
         raise e
 
+
 async def correct_transcript(transcript: str) -> str:
     """
-    Correct the transcribed text using OpenAI Assistant.
+    Correct the transcribed text using GPT-4o to fix any voice-to-text errors and improve formatting.
     """
     try:
-        # Create a thread
-        thread = client.beta.threads.create()
-        
-        # Add message to thread
-        message = client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=f"Please correct this voice-to-text transcription:\n\n{transcript}"
+        response = client.chat.completions.create(
+            model="gpt-4o",  # Using GPT-4o for the best performance
+            messages=[
+                    {
+                    "role": "system",
+                    "content": """You are an expert in Azerbaijani language, phonetics, and natural speech processing.
+                    Your task is to correct errors in a voice-to-text transcript while keeping the spoken structure intact.
+
+                    **Key Instructions:**
+                    1. Fix any misinterpretations caused by phonetic errors.
+                    2. Correct grammar, punctuation, and word usage **without changing the speaker's word choices whenever possible**.
+                    3. **Preserve all spoken words, including filler words, unless they are clearly incorrect.**
+                    4. Replace incorrect words with **phonetically similar and contextually relevant** alternatives **only when necessary**.
+                    5. Apply proper capitalization, sentence structure, and paragraph formatting.
+                    6. Break long sentences into shorter, more readable ones while maintaining the speaker's intent.
+                    7. Ensure the final text flows naturally and reads as authentic Azerbaijani speech.
+
+                    **Guidelines:**
+                    - Do **not** remove or replace words unless they are transcription errors or grammatically incorrect.
+                    - Apply correct Azerbaijani punctuation and spacing.
+                    - Avoid changing the original tone or intent of the text.
+                    - When in doubt, prioritize grammatical accuracy while preserving the original wording.
+
+                    Return only the corrected transcript with proper formatting. No explanations."""
+                },
+                {
+                    "role": "user", 
+                    "content": f"Correct and format this voice-to-text transcription:\n\n{transcript}"
+                }
+            ],
+            temperature=0.3,  # Lower temperature for more consistent corrections
+            max_tokens=2000   # Increased token limit for longer texts
         )
-        
-        # Run the assistant
-        run = client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=transcript_corrector.id
-        )
-        
-        # Wait for completion
-        while True:
-            run_status = client.beta.threads.runs.retrieve(
-                thread_id=thread.id,
-                run_id=run.id
-            )
-            if run_status.status == "completed":
-                break
-            elif run_status.status in ["failed", "cancelled", "expired"]:
-                raise Exception(f"Assistant run failed with status: {run_status.status}")
-            time.sleep(1)
-        
-        # Get the response
-        messages = client.beta.threads.messages.list(thread_id=thread.id)
-        for msg in messages.data:
-            if msg.role == "assistant":
-                return msg.content[0].text.value
-        
-        raise Exception("No assistant response found")
-        
+        return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Error correcting transcript: {str(e)}", exc_info=True)
         raise e
+
 
 @app.get("/health")
 async def health_check():
