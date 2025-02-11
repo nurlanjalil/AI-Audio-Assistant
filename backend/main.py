@@ -177,11 +177,11 @@ async def save_audio_file(file: UploadFile) -> str:
         audio = AudioSegment.from_file(temp_path)
         duration_seconds = len(audio) / 1000  # Convert milliseconds to seconds
         
-        if duration_seconds > 180:  # 3 minutes
+        if duration_seconds > 300:  # 5 minutes
             os.remove(temp_path)
             raise HTTPException(
                 status_code=400,
-                detail="Audio faylın uzunluğu 3 dəqiqədən çox ola bilməz"
+                detail="Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz"
             )
         
         # Convert to WAV if needed

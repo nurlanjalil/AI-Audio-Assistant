@@ -15,7 +15,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let recordingTimer = null;
 let recordingStartTime = null;
-const MAX_RECORDING_TIME = 180; // 3 minutes in seconds
+const MAX_RECORDING_TIME = 300; // 5 minutes in seconds
 
 // Add new global variables for summary recording
 let summaryMediaRecorder = null;
@@ -232,8 +232,8 @@ function handleFileSelection(file, isSummary) {
         audio.addEventListener('loadedmetadata', () => {
             URL.revokeObjectURL(objectUrl);
             
-            if (audio.duration > 180) {
-                alert('Audio faylın uzunluğu 3 dəqiqədən çox ola bilməz.');
+            if (audio.duration > 300) {
+                alert('Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz.');
                 resetUI();
                 return;
             }
@@ -332,10 +332,10 @@ async function processAudioFile(isSummary) {
         // Handle specific error cases
         if (error instanceof TypeError && error.message.includes('fetch')) {
             errorMessage = 'Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.';
-        } else if (errorMessage.includes('413')) {
-            errorMessage = 'Audio faylın həcmi 25MB-dan çox ola bilməz';
+        } else if (errorMessage.includes('413') || errorMessage.includes('Maximum content size limit')) {
+            errorMessage = 'The audio file is too large. Please try compressing the file or using a shorter audio clip (maximum size: 25MB).';
         } else if (errorMessage.includes('duration')) {
-            errorMessage = 'Audio faylın uzunluğu 3 dəqiqədən çox ola bilməz';
+            errorMessage = 'Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz';
         }
         
         alert(`Xəta: ${errorMessage}`);
@@ -389,10 +389,10 @@ function updateRecordingTime() {
     const seconds = (elapsed % 60).toString().padStart(2, '0');
     recordTime.textContent = `${minutes}:${seconds}`;
 
-    // Auto-stop recording after 3 minutes
+    // Auto-stop recording after 5 minutes
     if (elapsed >= MAX_RECORDING_TIME) {
         stopRecord.click();
-        alert('Maksimum yazılma müddəti 3 dəqiqədir.');
+        alert('Maksimum yazılma müddəti 5 dəqiqədir.');
     }
 }
 
@@ -480,7 +480,7 @@ function updateSummaryRecordingTime() {
 
     if (elapsed >= MAX_RECORDING_TIME) {
         summaryStopRecord.click();
-        alert('Maksimum yazılma müddəti 3 dəqiqədir.');
+        alert('Maksimum yazılma müddəti 5 dəqiqədir.');
     }
 }
 
