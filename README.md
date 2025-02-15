@@ -5,7 +5,7 @@ Convert your audio content into text with AI-powered transcription.
 ## Features ✨
 
 - Audio file upload (MP3, WAV, M4A)
-- Live voice recording (up to 3 minutes)
+- Live voice recording (up to 5 minutes)
 - Automatic speech-to-text transcription with AI-powered error correction
 - Audio summarization with AI
 - Simple and intuitive interface
