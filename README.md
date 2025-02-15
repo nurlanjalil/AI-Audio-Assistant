@@ -19,7 +19,7 @@ Visit: [AI Audio Assistant](https://nurlanjalil.tech/AI-Audio-Assistant/)
 ## How to Use 📝
 
 1. Choose your preferred method:
-   - Upload an audio file (up to 3 minutes)
+   - Upload an audio file (up to 5 minutes)
    - Record your voice directly in the browser
 2. For file upload:
    - Drag and drop your file into the upload area
