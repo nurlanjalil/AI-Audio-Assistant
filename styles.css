@@ -537,28 +537,4 @@ footer {
 /* Ensure audio player has consistent height */
 audio {
     height: 40px;
-}
-
-.mic-selector {
-    margin-bottom: 1rem;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: white;
-    font-size: 14px;
-    width: 100%;
-    max-width: 300px;
-}
-
-.mic-selector:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-}
-
-@media (max-width: 768px) {
-    .mic-selector {
-        font-size: 16px; /* Better touch target on mobile */
-        padding: 0.75rem;
-    }
 } 

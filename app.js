@@ -27,10 +27,6 @@ let summaryRecordingStartTime = null;
 let currentRecordedFile = null;
 let currentSummaryRecordedFile = null;
 
-// Add new global variables for audio settings
-let availableDevices = [];
-let selectedMicrophoneId = null;
-
 // DOM Elements
 const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -180,10 +176,6 @@ newFileButton.addEventListener('click', () => {
 
 // Recording Handlers
 startRecord.addEventListener('click', async () => {
-    if (!availableDevices.length) {
-        await getAvailableAudioDevices();
-    }
-    
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         startRecording(stream);
@@ -361,54 +353,28 @@ async function processAudioFile(isSummary) {
 }
 
 // Recording Functions
-async function startRecording(stream) {
-    const audioConstraints = {
-        audio: {
-            deviceId: selectedMicrophoneId ? { exact: selectedMicrophoneId } : undefined,
-            sampleRate: 48000,
-            sampleSize: 16,
-            channelCount: 1,
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-            latency: 0
-        }
-    };
+function startRecording(stream) {
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
 
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-        audioChunks = [];
+    mediaRecorder.addEventListener('dataavailable', event => {
+        audioChunks.push(event.data);
+    });
+
+    mediaRecorder.addEventListener('stop', () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        currentRecordedFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
         
-        // Use higher quality audio settings for MediaRecorder
-        const options = {
-            mimeType: 'audio/webm;codecs=opus',
-            audioBitsPerSecond: 128000
-        };
+        // Create audio preview
+        const audioUrl = URL.createObjectURL(audioBlob);
+        audioPreview.src = audioUrl;
+        recordPreview.classList.remove('hidden');
         
-        mediaRecorder = new MediaRecorder(stream, options);
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach(track => track.stop());
+    });
 
-        mediaRecorder.addEventListener('dataavailable', event => {
-            audioChunks.push(event.data);
-        });
-
-        mediaRecorder.addEventListener('stop', () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            currentRecordedFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
-            
-            // Create audio preview
-            const audioUrl = URL.createObjectURL(audioBlob);
-            audioPreview.src = audioUrl;
-            recordPreview.classList.remove('hidden');
-            
-            // Stop all tracks to release the microphone
-            stream.getTracks().forEach(track => track.stop());
-        });
-
-        mediaRecorder.start(100);
-    } catch (error) {
-        console.error('Error starting recording:', error);
-        alert('Səs yazmaq mümkün olmadı. Xahiş edirik mikrofon icazələrini yoxlayın və ya başqa mikrofon seçin.');
-    }
+    mediaRecorder.start(100);
 }
 
 function stopRecording() {
@@ -591,36 +557,4 @@ document.querySelectorAll('.preview-process-button').forEach(button => {
         const isSummary = button.closest('#summarizer') !== null;
         processAudioFile(isSummary);
     });
-});
-
-// Add function to get available audio devices
-async function getAvailableAudioDevices() {
-    try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        availableDevices = devices.filter(device => device.kind === 'audioinput');
-        
-        // Create microphone selection dropdown if multiple devices are available
-        if (availableDevices.length > 1) {
-            const micSelector = document.createElement('select');
-            micSelector.id = 'microphoneSelect';
-            micSelector.className = 'mic-selector';
-            
-            availableDevices.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.deviceId;
-                option.text = device.label || `Microphone ${availableDevices.indexOf(device) + 1}`;
-                micSelector.appendChild(option);
-            });
-            
-            micSelector.addEventListener('change', (e) => {
-                selectedMicrophoneId = e.target.value;
-            });
-            
-            // Add selector before the record button
-            const recordContainer = document.querySelector('.record-controls');
-            recordContainer.insertBefore(micSelector, recordContainer.firstChild);
-        }
-    } catch (error) {
-        console.error('Error enumerating audio devices:', error);
-    }
-} 
+}); 
