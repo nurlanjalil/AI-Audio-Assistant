@@ -429,35 +429,31 @@ footer {
 }
 
 .support-button {
-    position: fixed;
-    left: 2rem;
-    top: 2rem;
-    transform: none;
+    position: relative;
     z-index: 100;
-    background: var(--surface-color);
-    padding: 0.5rem;
-    border-radius: 1rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .donate-button {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
-    background: var(--surface-color);
+    justify-content: center;
+    gap: 0.5rem;
     color: var(--text-color);
-    padding: 1rem;
+    padding: 0.75rem;
     border-radius: 0.75rem;
     text-decoration: none;
     font-weight: 500;
     transition: all 0.3s ease;
-    border: 2px solid var(--border-color);
+    border: none;
     min-width: 120px;
 }
 
 .donate-logo {
-    width: 100px;
+    width: 80px;
     height: auto;
     border-radius: 0.5rem;
 }
@@ -661,7 +657,7 @@ audio {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 2rem;
+    padding: 0.75rem 2rem;
     position: relative;
     z-index: 1000;
 }
@@ -731,28 +727,57 @@ audio {
 
 @media (max-width: 768px) {
     .top-bar {
-        padding: 1rem;
-        flex-wrap: wrap;
-        gap: 1rem;
+        padding: 0.75rem;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .donate-button {
+        flex-direction: column;
+        padding: 0.75rem;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .donate-logo {
+        width: 60px;
     }
 
     .language-flags {
-        margin-left: 0;
+        gap: 1rem;
     }
 
-    .ui-language-selector {
-        width: 100%;
-        margin: 0;
+    .flag-button .flag {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-bar {
+        padding: 0.75rem;
+        gap: 1rem;
     }
 
-    .ui-language-selector .language-select {
-        width: 100%;
-        min-width: 200px;
+    .donate-button {
+        padding: 0.5rem;
     }
 
-    .language-select {
-        width: 100%;
-        max-width: none;
+    .donate-logo {
+        width: 50px;
+    }
+
+    .donate-button span {
+        font-size: 0.9rem;
+    }
+
+    .language-flags {
+        gap: 0.75rem;
+    }
+
+    .flag-button .flag {
+        font-size: 1.4rem;
     }
 }
 
@@ -822,8 +847,10 @@ audio {
 /* UI Language Selector with Flags */
 .language-flags {
     display: flex;
-    gap: 0.75rem;
+    gap: 1rem;
     align-items: center;
+    justify-content: center;
+    height: 100%;
 }
 
 .flag-button {
