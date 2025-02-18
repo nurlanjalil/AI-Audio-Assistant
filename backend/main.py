@@ -85,17 +85,23 @@ async def transcribe_azerbaijani(
     Supports both uploaded files and live recordings.
     """
     logger.info(f"Received Azerbaijani transcription request: {file.filename}")
-    logger.debug(f"Live recording: {live_recording}")
+    logger.info(f"Live recording: {live_recording}")
+    logger.info(f"File size: {file.size} bytes")
+    logger.info(f"Content type: {file.content_type}")
     
     try:
         # Process audio file
         temp_path = await save_audio_file(file)
         
-        # Transcribe with Whisper (optimized for Azerbaijani)
+        # Transcribe with Whisper
+        logger.info("Starting Whisper transcription")
         raw_transcript = await transcribe_audio(temp_path, "azerbaijani")
+        logger.info("Whisper transcription completed")
         
-        # Correct the transcript using GPT-4
+        # Correct the transcript
+        logger.info("Starting transcript correction")
         corrected_transcript = await correct_transcript(raw_transcript)
+        logger.info("Transcript correction completed")
         
         # Cleanup
         if os.path.exists(temp_path):
@@ -221,6 +227,9 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
                 language="az" if language == "azerbaijani" else language,
                 prompt="This is Azerbaijani speech. Please transcribe accurately."
             )
+        
+        logger.info("Raw transcription completed successfully")
+        logger.info(f"Raw transcript: {response[:200]}...") # Log first 200 chars
         return response
 
     except Exception as e:
@@ -269,10 +278,13 @@ async def correct_transcript(transcript: str) -> str:
     Correct the transcribed text using GPT-4o to fix any voice-to-text errors and improve formatting.
     """
     try:
+        logger.info("Starting transcript correction")
+        logger.info(f"Input transcript: {transcript[:200]}...") # Log first 200 chars
+        
         response = client.chat.completions.create(
-            model="gpt-4o",  # Using GPT-4o for the best performance
+            model="gpt-4o",
             messages=[
-                    {
+                {
                     "role": "system",
                     "content": """You are an expert in Azerbaijani language, phonetics, and natural speech processing.
                     Your task is to correct errors in a voice-to-text transcript while keeping the spoken structure intact.
@@ -302,9 +314,35 @@ async def correct_transcript(transcript: str) -> str:
             temperature=0.3,  # Lower temperature for more consistent corrections
             max_tokens=2000   # Increased token limit for longer texts
         )
-        return response.choices[0].message.content.strip()
+        
+        corrected_text = response.choices[0].message.content.strip()
+        
+        logger.info("Transcript correction completed")
+        logger.info(f"Corrected transcript: {corrected_text[:200]}...") # Log first 200 chars
+        
+        # Log detailed comparison
+        logger.info("Transcript Comparison:")
+        logger.info("Original length: %d characters", len(transcript))
+        logger.info("Corrected length: %d characters", len(corrected_text))
+        logger.info("Character difference: %d", len(corrected_text) - len(transcript))
+        
+        # Log word-level changes
+        original_words = set(transcript.split())
+        corrected_words = set(corrected_text.split())
+        added_words = corrected_words - original_words
+        removed_words = original_words - corrected_words
+        
+        if added_words:
+            logger.info(f"Added words: {', '.join(added_words)}")
+        if removed_words:
+            logger.info(f"Removed words: {', '.join(removed_words)}")
+            
+        return corrected_text
+        
     except Exception as e:
-        logger.error(f"Error correcting transcript: {str(e)}", exc_info=True)
+        logger.error(f"Correction error: {str(e)}", exc_info=True)
+        logger.error(f"Original transcript length: {len(transcript)}")
+        logger.error(f"Original transcript preview: {transcript[:200]}...")
         raise e
 
 
