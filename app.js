@@ -382,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedUILang = localStorage.getItem('uiLanguage') || 'az';
     uiLanguageSelect.value = savedUILang;
     updateUILanguage(savedUILang);
+    setActiveFlag(savedUILang);
     
     // Load languages for transcription
     loadLanguages();
@@ -442,7 +443,36 @@ async function loadLanguages() {
     }
 }
 
-// UI Language Handling
+// UI Language Selection
+const flagButtons = document.querySelectorAll('.flag-button');
+
+// Handle flag button clicks
+flagButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const lang = button.dataset.lang;
+        localStorage.setItem('uiLanguage', lang);
+        updateUILanguage(lang);
+        setActiveFlag(lang);
+        
+        console.log('UI Language changed via flag:', {
+            newLanguage: lang,
+            storedInLocalStorage: localStorage.getItem('uiLanguage')
+        });
+    });
+});
+
+// Set active state for the selected flag
+function setActiveFlag(lang) {
+    flagButtons.forEach(button => {
+        if (button.dataset.lang === lang) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
+}
+
+// Update UI Language
 function updateUILanguage(language) {
     currentUILanguage = language;
     const t = translations[language] || translations.az;

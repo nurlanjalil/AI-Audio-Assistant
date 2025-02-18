@@ -18,26 +18,23 @@
                 </a>
             </div>
             <div class="ui-language-selector">
-                <select id="uiLanguageSelect" class="language-select">
-                    <option value="az">🇦🇿 Azərbaycan dili</option>
-                    <option value="en">🇬🇧 English</option>
-                    <option value="ru">🇷🇺 Русский</option>
-                </select>
+                <div class="language-flags">
+                    <button class="flag-button" data-lang="az" title="Azərbaycan dili">
+                        <span class="flag">🇦🇿</span>
+                    </button>
+                    <button class="flag-button" data-lang="en" title="English">
+                        <span class="flag">🇬🇧</span>
+                    </button>
+                    <button class="flag-button" data-lang="ru" title="Русский">
+                        <span class="flag">🇷🇺</span>
+                    </button>
+                </div>
             </div>
         </div>
 
         <header>
             <h1><img src="logo.png" alt="AI Audio Assistant Logo" style="height: 1.5em; vertical-align: middle;"> <span data-translate="title">AI Audio Assistenti</span></h1>
             <p class="subtitle" data-translate="subtitle">Səsi mətnə çevir və AI ilə xülasə et</p>
-            
-            <div class="transcription-language-selector">
-                <label for="languageSelect" data-translate="selectTranscriptionLanguage">Transkripsiya dili:</label>
-                <div class="select-wrapper">
-                    <select id="languageSelect" class="language-select">
-                        <!-- Options will be populated by JavaScript -->
-                    </select>
-                </div>
-            </div>
         </header>
 
         <main>
@@ -49,6 +46,13 @@
             </div>
 
             <div class="tab-content active" id="speech-to-text">
+                <div class="transcription-language-selector">
+                    <label for="languageSelect" data-translate="selectTranscriptionLanguage">Transkripsiya dili:</label>
+                    <select id="languageSelect" class="language-select">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                </div>
+
                 <div class="method-selector">
                     <button class="method-button active" data-method="upload" data-translate="uploadAudio">Audio Yüklə</button>
                     <button class="method-button" data-method="record" data-translate="recordAudio">Səs Yaz</button>
