@@ -397,9 +397,6 @@ async function loadLanguages() {
         // Set default language
         languageSelect.value = data.default;
         currentLanguage = data.default;
-        
-        // Update UI text based on selected language
-        updateUILanguage(currentLanguage);
     } catch (error) {
         console.error('Error loading languages:', error);
         alert('Dil siyahısını yükləmək mümkün olmadı. Xahiş edirik səhifəni yeniləyin.');
@@ -455,7 +452,7 @@ async function processAudioFile() {
     let file = currentRecordedFile || fileInput.files[0];
     
     if (!file) {
-        const message = translations[currentLanguage]?.selectFile || translations.az.selectFile;
+        const message = translations[currentUILanguage]?.selectFile || translations.az.selectFile;
         alert(message);
         return;
     }
@@ -470,8 +467,9 @@ async function processAudioFile() {
     try {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('language', currentLanguage);
+        formData.append('language', currentLanguage || 'az'); // Ensure language is always set
 
+        // Use the main transcribe endpoint, not the legacy one
         const response = await fetch(`${API_BASE_URL}/transcribe/`, {
             method: 'POST',
             body: formData
@@ -502,8 +500,8 @@ async function processAudioFile() {
         console.error('Detailed error:', error);
         let errorMessage = error.message;
         
-        // Get translated error messages
-        const t = translations[currentLanguage] || translations.az;
+        // Get translated error messages based on UI language, not transcription language
+        const t = translations[currentUILanguage] || translations.az;
         
         // Handle specific error cases
         if (error instanceof TypeError && error.message.includes('fetch')) {

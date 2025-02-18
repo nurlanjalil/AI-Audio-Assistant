@@ -165,9 +165,10 @@ async def transcribe_audio_endpoint(
         # Validate language
         try:
             selected_language = Language(language)
+            logger.info(f"Selected language: {selected_language.value}")
         except ValueError:
+            logger.warning(f"Invalid language {language}, using default {DEFAULT_LANGUAGE.value}")
             selected_language = DEFAULT_LANGUAGE
-            logger.warning(f"Invalid language {language}, using default")
 
         # Process audio file
         temp_path = await save_audio_file(file)
@@ -175,7 +176,8 @@ async def transcribe_audio_endpoint(
         # Transcribe with Whisper
         raw_transcript = await transcribe_audio(
             temp_path, 
-            LANGUAGE_CONFIG[selected_language]["whisper_code"]
+            LANGUAGE_CONFIG[selected_language]["whisper_code"],
+            LANGUAGE_CONFIG[selected_language]["prompt"]
         )
         
         # Correct the transcript
@@ -251,12 +253,15 @@ async def summarize_text(request: dict):
         raise HTTPException(status_code=500, detail=f"Summarization error: {str(e)}")
 
 @app.post("/transcribe-live/")
-async def transcribe_live(file: UploadFile = File(...)):
+async def transcribe_live(
+    file: UploadFile = File(...),
+    language: str = DEFAULT_LANGUAGE.value
+):
     """
-    Endpoint specifically for live recorded Azerbaijani speech.
-    Optimized for real-time audio processing.
+    Endpoint specifically for live recorded speech.
+    Now supports multiple languages.
     """
-    return await transcribe_audio_endpoint(file, live_recording=True)
+    return await transcribe_audio_endpoint(file, language, live_recording=True)
 
 async def save_audio_file(file: UploadFile) -> str:
     """
@@ -318,10 +323,10 @@ async def save_audio_file(file: UploadFile) -> str:
             )
         raise e
 
-async def transcribe_audio(file_path: str, language_code: str) -> str:
+async def transcribe_audio(file_path: str, language_code: str, prompt: str) -> str:
     """
     Transcribe audio using Whisper API.
-    Optimized for specified language.
+    Optimized for specified language with custom prompt.
     """
     try:
         with open(file_path, "rb") as audio_file:
@@ -330,10 +335,10 @@ async def transcribe_audio(file_path: str, language_code: str) -> str:
                 file=audio_file,
                 response_format="text",
                 language=language_code,
-                prompt=LANGUAGE_CONFIG[Language(language_code)]["prompt"]
+                prompt=prompt
             )
         
-        logger.info("=== Raw Whisper Transcript ===")
+        logger.info(f"=== Raw Whisper Transcript (Language: {language_code}) ===")
         logger.info(response)
         return response
 
@@ -484,4 +489,5 @@ async def transcribe_azerbaijani_legacy(
     live_recording: bool = False
 ):
     """Legacy endpoint that redirects to the new transcribe endpoint."""
+    logger.warning("Legacy endpoint /transcribe-azerbaijani/ was called. Please update to use /transcribe/")
     return await transcribe_audio_endpoint(file, language, live_recording) 
