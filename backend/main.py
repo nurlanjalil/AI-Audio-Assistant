@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, HTTPException, File
+from fastapi import FastAPI, UploadFile, HTTPException, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from openai import OpenAI
@@ -154,17 +154,18 @@ async def get_languages():
 @app.post("/transcribe/")
 async def transcribe_audio_endpoint(
     file: UploadFile = File(...),
-    language: str = DEFAULT_LANGUAGE.value,
-    live_recording: bool = False
+    language: str = Form(default=DEFAULT_LANGUAGE.value),
+    live_recording: bool = Form(default=False)
 ):
     """
     Endpoint for speech-to-text conversion.
     Supports multiple languages with Azerbaijani as default.
+    Now properly handles form data parameters.
     """
     try:
         # Log raw request details
         logger.info("=== Transcription Request Details ===")
-        logger.info(f"Raw language parameter: '{language}'")
+        logger.info(f"Raw language parameter from form: '{language}'")
         logger.info(f"Parameter type: {type(language)}")
         logger.info(f"Default language: '{DEFAULT_LANGUAGE.value}'")
         logger.info(f"Available languages: {[lang.value for lang in Language]}")
@@ -300,11 +301,11 @@ async def summarize_text(request: dict):
 @app.post("/transcribe-live/")
 async def transcribe_live(
     file: UploadFile = File(...),
-    language: str = DEFAULT_LANGUAGE.value
+    language: str = Form(default=DEFAULT_LANGUAGE.value)
 ):
     """
     Endpoint specifically for live recorded speech.
-    Now supports multiple languages.
+    Now supports multiple languages and properly handles form data.
     """
     return await transcribe_audio_endpoint(file, language, live_recording=True)
 

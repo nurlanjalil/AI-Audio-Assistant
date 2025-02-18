@@ -497,25 +497,32 @@ async function processAudioFile() {
 
     try {
         const formData = new FormData();
+        
+        // Add file to FormData
         formData.append('file', file);
         
         // Always use the current select value to ensure consistency
         const selectedLanguage = languageSelect.value;
+        
+        // Add language parameter to FormData
+        formData.append('language', selectedLanguage);
+        
+        // Add live_recording parameter
+        formData.append('live_recording', file.name.startsWith('recording.wav'));
         
         // Enhanced logging for form submission
         console.log('Submitting transcription request:', {
             selectedLanguage,
             currentLanguage,
             selectValue: languageSelect.value,
-            storedLanguage: localStorage.getItem('selectedLanguage')
+            storedLanguage: localStorage.getItem('selectedLanguage'),
+            isLiveRecording: file.name.startsWith('recording.wav')
         });
 
-        // Add language parameter to FormData
-        formData.append('language', selectedLanguage);
-
         // Log the actual FormData entries
+        console.log('FormData contents:');
         for (let pair of formData.entries()) {
-            console.log('FormData entry:', pair[0], pair[1]);
+            console.log(`  ${pair[0]}: ${pair[1]}`);
         }
 
         // Use the main transcribe endpoint
@@ -535,7 +542,8 @@ async function processAudioFile() {
         console.log('Transcription response:', {
             success: data.success,
             language: data.language,
-            requestedLanguage: selectedLanguage
+            requestedLanguage: data.requested_language,
+            matchesSelected: data.language === selectedLanguage
         });
 
         // Update results display
