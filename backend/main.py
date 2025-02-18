@@ -330,14 +330,21 @@ async def correct_transcript(transcript: str) -> str:
         )
         
         corrected_text = response.choices[0].message.content.strip()
-        logger.info("=== Corrected Transcript ===")
-        logger.info(corrected_text)
         
-        # Only log significant changes
+        # Always log raw and corrected versions
+        logger.info("Raw transcript: " + transcript)
+        logger.info("Corrected transcript: " + corrected_text)
+        
+        # Log specific corrections if there were changes
         if corrected_text != transcript:
-            logger.info("=== Significant Changes Made ===")
-            logger.info(f"Original: {transcript}")
-            logger.info(f"Corrected: {corrected_text}")
+            # Find and log specific word corrections
+            raw_words = transcript.split()
+            corrected_words = corrected_text.split()
+            
+            # Log word-level corrections
+            for i in range(min(len(raw_words), len(corrected_words))):
+                if raw_words[i] != corrected_words[i]:
+                    logger.info(f"Word correction: '{raw_words[i]}' → '{corrected_words[i]}'")
             
         return corrected_text
         
