@@ -9,13 +9,120 @@ const UPLOAD_ICON = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iN
 // Update image src directly with base64 data
 document.getElementById('uploadIcon').src = UPLOAD_ICON;
 
+// UI Translations
+const translations = {
+    az: {
+        support: "Dəstək ol",
+        title: "AI Audio Assistenti",
+        subtitle: "Səsi mətnə çevir və AI ilə xülasə et",
+        selectTranscriptionLanguage: "Transkripsiya dili:",
+        speechToText: "Səsi mətnə çevir",
+        uploadAudio: "Audio Yüklə",
+        recordAudio: "Səs Yaz",
+        dropText: "Audio faylı buraya sürüşdürün və ya",
+        selectFile: "Fayl Seçin",
+        supportedFormats: "Dəstəklənən formatlar: MP3, WAV, M4A",
+        durationWarning: "⚠️ Audio faylın uzunluğu 5 dəqiqədən çox olmamalıdır",
+        startRecording: "Yazmağa başla",
+        stopRecording: "Dayandır",
+        recording: "Səs yazılır:",
+        previewTitle: "Səs Yazını Dinlə",
+        browserNotSupported: "Brauzeriniz audio elementini dəstəkləmir.",
+        transcribe: "Mətnə Çevir",
+        selectedFile: "Seçilmiş fayl:",
+        text: "Mətn",
+        copyText: "Mətni Kopyala",
+        generateSummary: "Xülasə Yarat",
+        summary: "Xülasə",
+        copySummary: "Xülasəni Kopyala",
+        newFile: "Yeni Fayl Emal Et",
+        processing: "Mətniniz hazırlanır, zəhmət olmasa gözləyin..",
+        invalidFile: "Xahiş edirik düzgün audio fayl yükləyin (MP3, WAV və ya M4A)",
+        fileTooLarge: "Audio faylın həcmi 25MB-dan çox ola bilməz",
+        fileTooLong: "Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz.",
+        selectFileFirst: "Xahiş edirik əvvəlcə fayl seçin və ya səs yazın",
+        transcribeFirst: "Xahiş edirik əvvəlcə audio faylı mətnə çevirin",
+        connectionError: "Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.",
+        summaryError: "Xülasə yaratmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin."
+    },
+    en: {
+        support: "Support",
+        title: "AI Audio Assistant",
+        subtitle: "Convert speech to text and summarize with AI",
+        selectTranscriptionLanguage: "Transcription language:",
+        speechToText: "Speech to Text",
+        uploadAudio: "Upload Audio",
+        recordAudio: "Record Audio",
+        dropText: "Drop audio file here or",
+        selectFile: "Select File",
+        supportedFormats: "Supported formats: MP3, WAV, M4A",
+        durationWarning: "⚠️ Audio file must not exceed 5 minutes",
+        startRecording: "Start Recording",
+        stopRecording: "Stop",
+        recording: "Recording:",
+        previewTitle: "Listen to Recording",
+        browserNotSupported: "Your browser does not support the audio element.",
+        transcribe: "Transcribe",
+        selectedFile: "Selected file:",
+        text: "Text",
+        copyText: "Copy Text",
+        generateSummary: "Generate Summary",
+        summary: "Summary",
+        copySummary: "Copy Summary",
+        newFile: "Process New File",
+        processing: "Processing your text, please wait..",
+        invalidFile: "Please upload a valid audio file (MP3, WAV, or M4A)",
+        fileTooLarge: "Audio file size must not exceed 25MB",
+        fileTooLong: "Audio duration must not exceed 5 minutes",
+        selectFileFirst: "Please select a file or record audio first",
+        transcribeFirst: "Please transcribe the audio file first",
+        connectionError: "Could not connect to server. Please try again later.",
+        summaryError: "Could not generate summary. Please try again later."
+    },
+    ru: {
+        support: "Поддержка",
+        title: "AI Аудио Ассистент",
+        subtitle: "Преобразуйте речь в текст и создайте резюме с помощью ИИ",
+        selectTranscriptionLanguage: "Язык транскрипции:",
+        speechToText: "Речь в текст",
+        uploadAudio: "Загрузить аудио",
+        recordAudio: "Записать аудио",
+        dropText: "Перетащите аудиофайл сюда или",
+        selectFile: "Выберите файл",
+        supportedFormats: "Поддерживаемые форматы: MP3, WAV, M4A",
+        durationWarning: "⚠️ Аудиофайл не должен превышать 5 минут",
+        startRecording: "Начать запись",
+        stopRecording: "Стоп",
+        recording: "Запись:",
+        previewTitle: "Прослушать запись",
+        browserNotSupported: "Ваш браузер не поддерживает аудиоэлемент.",
+        transcribe: "Преобразовать",
+        selectedFile: "Выбранный файл:",
+        text: "Текст",
+        copyText: "Копировать текст",
+        generateSummary: "Создать резюме",
+        summary: "Резюме",
+        copySummary: "Копировать резюме",
+        newFile: "Обработать новый файл",
+        processing: "Обработка текста, пожалуйста, подождите..",
+        invalidFile: "Пожалуйста, загрузите корректный аудиофайл (MP3, WAV или M4A)",
+        fileTooLarge: "Размер аудиофайла не должен превышать 25МБ",
+        fileTooLong: "Длительность аудио не должна превышать 5 минут",
+        selectFileFirst: "Пожалуйста, сначала выберите файл или запишите аудио",
+        transcribeFirst: "Пожалуйста, сначала преобразуйте аудиофайл в текст",
+        connectionError: "Не удалось подключиться к серверу. Пожалуйста, попробуйте позже.",
+        summaryError: "Не удалось создать резюме. Пожалуйста, попробуйте позже."
+    }
+};
+
 // Global variables
 let mediaRecorder = null;
 let audioChunks = [];
 let recordingTimer = null;
 let recordingStartTime = null;
 const MAX_RECORDING_TIME = 300; // 5 minutes in seconds
-let currentLanguage = null; // Store current language
+let currentLanguage = null; // Store current transcription language
+let currentUILanguage = 'az'; // Store current UI language
 
 // Add variable for recorded file
 let currentRecordedFile = null;
@@ -47,6 +154,7 @@ const recordPreview = document.querySelector('.record-preview');
 const audioPreview = document.getElementById('audioPreview');
 
 const languageSelect = document.getElementById('languageSelect');
+const uiLanguageSelect = document.getElementById('uiLanguageSelect');
 
 // Tab Handling
 tabButtons.forEach(button => {
@@ -160,33 +268,48 @@ startRecord.addEventListener('click', async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
-                sampleRate: 48000,
-                sampleSize: 16,
                 channelCount: 1,
                 echoCancellation: true,
                 noiseSuppression: true,
-                autoGainControl: true,
-                latency: 0,
-                googEchoCancellation: true,
-                googAutoGainControl: true,
-                googNoiseSuppression: true,
-                googHighpassFilter: true
+                autoGainControl: true
             }
         });
-        startRecording(stream);
+        
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        mediaRecorder.addEventListener('dataavailable', event => {
+            audioChunks.push(event.data);
+        });
+
+        mediaRecorder.addEventListener('stop', () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            currentRecordedFile = new File([audioBlob], 'recording.wav', { 
+                type: 'audio/wav',
+                lastModified: Date.now()
+            });
+            
+            const audioUrl = URL.createObjectURL(audioBlob);
+            audioPreview.src = audioUrl;
+            audioPreview.controls = true;
+            recordPreview.classList.remove('hidden');
+            
+            // Stop all tracks
+            stream.getTracks().forEach(track => track.stop());
+        });
+
+        mediaRecorder.start();
         
         startRecord.disabled = true;
         stopRecord.disabled = false;
         recordIndicator.classList.remove('hidden');
         startRecord.classList.add('recording');
-        recordPreview.classList.add('hidden');
-        processButton.classList.add('hidden');
         
         recordingStartTime = Date.now();
         recordingTimer = setInterval(updateRecordingTime, 1000);
     } catch (error) {
         console.error('Error accessing microphone:', error);
-        alert('Mikrofona çıxış xətası. Xahiş edirik mikrofon icazələrinin verildiyindən əmin olun.');
+        alert(translations[currentUILanguage].microphoneError || 'Error accessing microphone');
     }
 });
 
@@ -284,69 +407,48 @@ async function loadLanguages() {
 }
 
 // Load languages when page loads
-document.addEventListener('DOMContentLoaded', loadLanguages);
+document.addEventListener('DOMContentLoaded', () => {
+    // Load saved UI language preference or use default
+    const savedUILang = localStorage.getItem('uiLanguage') || 'az';
+    uiLanguageSelect.value = savedUILang;
+    updateUILanguage(savedUILang);
+    
+    // Load languages for transcription
+    loadLanguages();
+});
 
 // Language selection handler
 languageSelect.addEventListener('change', (e) => {
     currentLanguage = e.target.value;
-    updateUILanguage(currentLanguage);
 });
 
-// Update UI text based on selected language
+// UI Language Handling
 function updateUILanguage(language) {
-    const translations = {
-        az: {
-            fileSelect: 'Fayl Seçin',
-            dropText: 'Audio faylı buraya sürüşdürün və ya',
-            supportedFormats: 'Dəstəklənən formatlar: MP3, WAV, M4A',
-            durationWarning: '⚠️ Audio faylın uzunluğu 5 dəqiqədən çox olmamalıdır',
-            invalidFile: 'Xahiş edirik düzgün audio fayl yükləyin (MP3, WAV və ya M4A)',
-            fileTooLarge: 'Audio faylın həcmi 25MB-dan çox ola bilməz',
-            fileTooLong: 'Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz.',
-            selectFile: 'Xahiş edirik əvvəlcə fayl seçin və ya səs yazın',
-            processing: 'Mətniniz hazırlanır, zəhmət olmasa gözləyin..',
-            transcribeFirst: 'Xahiş edirik əvvəlcə audio faylı mətnə çevirin',
-            connectionError: 'Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.',
-            summaryError: 'Xülasə yaratmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.'
-        },
-        en: {
-            fileSelect: 'Select File',
-            dropText: 'Drop audio file here or',
-            supportedFormats: 'Supported formats: MP3, WAV, M4A',
-            durationWarning: '⚠️ Audio file must not exceed 5 minutes',
-            invalidFile: 'Please upload a valid audio file (MP3, WAV, or M4A)',
-            fileTooLarge: 'Audio file size must not exceed 25MB',
-            fileTooLong: 'Audio duration must not exceed 5 minutes',
-            selectFile: 'Please select a file or record audio first',
-            processing: 'Processing your text, please wait..',
-            transcribeFirst: 'Please transcribe the audio file first',
-            connectionError: 'Could not connect to server. Please try again later.',
-            summaryError: 'Could not generate summary. Please try again later.'
-        },
-        tr: {
-            fileSelect: 'Dosya Seç',
-            dropText: 'Ses dosyasını buraya sürükleyin veya',
-            supportedFormats: 'Desteklenen formatlar: MP3, WAV, M4A',
-            durationWarning: '⚠️ Ses dosyası 5 dakikayı geçmemelidir',
-            invalidFile: 'Lütfen geçerli bir ses dosyası yükleyin (MP3, WAV veya M4A)',
-            fileTooLarge: 'Ses dosyası boyutu 25MB\'ı geçmemelidir',
-            fileTooLong: 'Ses süresi 5 dakikayı geçmemelidir',
-            selectFile: 'Lütfen önce bir dosya seçin veya ses kaydedin',
-            processing: 'Metniniz işleniyor, lütfen bekleyin..',
-            transcribeFirst: 'Lütfen önce ses dosyasını metne çevirin',
-            connectionError: 'Sunucuya bağlanılamadı. Lütfen daha sonra tekrar deneyin.',
-            summaryError: 'Özet oluşturulamadı. Lütfen daha sonra tekrar deneyin.'
-        }
-    };
-
+    currentUILanguage = language;
     const t = translations[language] || translations.az;
 
-    // Update UI elements
-    document.querySelector('.upload-button').textContent = t.fileSelect;
-    document.querySelector('.upload-content p').textContent = t.dropText;
-    document.querySelector('.file-types').textContent = t.supportedFormats;
-    document.querySelector('.duration-note').textContent = t.durationWarning;
+    // Update all elements with data-translate attribute
+    document.querySelectorAll('[data-translate]').forEach(element => {
+        const key = element.getAttribute('data-translate');
+        if (t[key]) {
+            if (element.tagName.toLowerCase() === 'input' && element.type === 'submit') {
+                element.value = t[key];
+            } else {
+                element.textContent = t[key];
+            }
+        }
+    });
+
+    // Update document language
+    document.documentElement.lang = language;
 }
+
+// UI Language selection handler
+uiLanguageSelect.addEventListener('change', (e) => {
+    const lang = e.target.value;
+    localStorage.setItem('uiLanguage', lang);
+    updateUILanguage(lang);
+});
 
 // Process Audio File
 async function processAudioFile() {
