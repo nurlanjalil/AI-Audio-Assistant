@@ -15,6 +15,7 @@ let audioChunks = [];
 let recordingTimer = null;
 let recordingStartTime = null;
 const MAX_RECORDING_TIME = 300; // 5 minutes in seconds
+let currentLanguage = null; // Store current language
 
 // Add variable for recorded file
 let currentRecordedFile = null;
@@ -44,6 +45,8 @@ const recordIndicator = document.querySelector('.record-indicator');
 const recordTime = document.querySelector('.record-time');
 const recordPreview = document.querySelector('.record-preview');
 const audioPreview = document.getElementById('audioPreview');
+
+const languageSelect = document.getElementById('languageSelect');
 
 // Tab Handling
 tabButtons.forEach(button => {
@@ -250,6 +253,40 @@ function updateUIAfterFileSelection(file) {
     processButton.classList.remove('hidden');
 }
 
+// Language Handling
+async function loadLanguages() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/languages`);
+        const data = await response.json();
+        
+        // Clear existing options
+        languageSelect.innerHTML = '';
+        
+        // Add language options
+        data.languages.forEach(lang => {
+            const option = document.createElement('option');
+            option.value = lang.code;
+            option.textContent = lang.name;
+            languageSelect.appendChild(option);
+        });
+        
+        // Set default language
+        languageSelect.value = data.default;
+        currentLanguage = data.default;
+    } catch (error) {
+        console.error('Error loading languages:', error);
+        alert('Dil siyahısını yükləmək mümkün olmadı. Xahiş edirik səhifəni yeniləyin.');
+    }
+}
+
+// Load languages when page loads
+document.addEventListener('DOMContentLoaded', loadLanguages);
+
+// Language selection handler
+languageSelect.addEventListener('change', (e) => {
+    currentLanguage = e.target.value;
+});
+
 // Process Audio File
 async function processAudioFile() {
     let file = currentRecordedFile || fileInput.files[0];
@@ -269,6 +306,7 @@ async function processAudioFile() {
     try {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('language', currentLanguage);
 
         const response = await fetch(`${API_BASE_URL}/transcribe-azerbaijani/`, {
             method: 'POST',
@@ -437,14 +475,14 @@ generateSummaryButton.addEventListener('click', async () => {
                 'Accept': 'application/json'
             },
             body: JSON.stringify({ 
-                text: transcript
+                text: transcript,
+                language: currentLanguage
             })
         });
 
-        const data = await response.json(); // Get response data first
+        const data = await response.json();
 
         if (!response.ok) {
-            // If we have a specific error message from the server, use it
             throw new Error(data.detail || data.message || 'Failed to generate summary');
         }
 
@@ -455,14 +493,12 @@ generateSummaryButton.addEventListener('click', async () => {
         // Show summary section with content
         summaryContent.textContent = data.summary;
         summarySection.classList.remove('hidden');
-        // Use setTimeout to ensure smooth transition
         setTimeout(() => {
             summarySection.classList.add('visible');
         }, 10);
 
     } catch (error) {
         console.error('Error generating summary:', error);
-        // Show error message in summary section
         summarySection.classList.remove('hidden');
         summaryContent.innerHTML = `
             <div class="summary-error">

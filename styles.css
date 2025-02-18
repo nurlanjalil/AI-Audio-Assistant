@@ -592,4 +592,32 @@ audio {
     background: #fef2f2;
     border-radius: 0.5rem;
     margin: 1rem 0;
+}
+
+/* Language Selector */
+.language-selector {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.language-select {
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-left: 0.5rem;
+}
+
+.language-select:hover {
+    border-color: var(--primary-color);
+}
+
+.language-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
 } 

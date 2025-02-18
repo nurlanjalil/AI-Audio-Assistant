@@ -9,10 +9,11 @@ import tempfile
 import uuid
 import logging
 import sys
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import httpx
 import numpy as np
 from scipy import signal
+from enum import Enum
 
 # Configure detailed logging
 logging.basicConfig(
@@ -71,6 +72,51 @@ TEMP_DIR = tempfile.gettempdir()
 processing_files: Dict[str, dict] = {}
 logger.info(f"Using temporary directory: {TEMP_DIR}")
 
+class Language(Enum):
+    """Supported languages for transcription and summarization."""
+    AZERBAIJANI = "az"
+    ENGLISH = "en"
+    TURKISH = "tr"
+    FRENCH = "fr"
+    ARABIC = "ar"
+    CHINESE = "zh"
+
+# Language configuration
+LANGUAGE_CONFIG = {
+    Language.AZERBAIJANI: {
+        "name": "Azərbaycan dili",
+        "whisper_code": "az",
+        "prompt": "This is Azerbaijani speech. Please transcribe accurately."
+    },
+    Language.ENGLISH: {
+        "name": "English",
+        "whisper_code": "en",
+        "prompt": "This is English speech. Please transcribe accurately."
+    },
+    Language.TURKISH: {
+        "name": "Türkçe",
+        "whisper_code": "tr",
+        "prompt": "This is Turkish speech. Please transcribe accurately."
+    },
+    Language.FRENCH: {
+        "name": "Français",
+        "whisper_code": "fr",
+        "prompt": "This is French speech. Please transcribe accurately."
+    },
+    Language.ARABIC: {
+        "name": "العربية",
+        "whisper_code": "ar",
+        "prompt": "This is Arabic speech. Please transcribe accurately."
+    },
+    Language.CHINESE: {
+        "name": "中文",
+        "whisper_code": "zh",
+        "prompt": "This is Chinese speech. Please transcribe accurately."
+    }
+}
+
+DEFAULT_LANGUAGE = Language.AZERBAIJANI
+
 @app.get("/")
 async def root():
     logger.info("Root endpoint accessed")
@@ -85,24 +131,51 @@ async def root():
         }
     }
 
+@app.get("/languages")
+async def get_languages():
+    """Get list of supported languages."""
+    return {
+        "languages": [
+            {
+                "code": lang.value,
+                "name": LANGUAGE_CONFIG[lang]["name"]
+            } for lang in Language
+        ],
+        "default": DEFAULT_LANGUAGE.value
+    }
+
 @app.post("/transcribe-azerbaijani/")
 async def transcribe_azerbaijani(
     file: UploadFile = File(...),
+    language: str = DEFAULT_LANGUAGE.value,
     live_recording: bool = False
 ):
     """
-    Endpoint for Azerbaijani speech-to-text conversion.
-    Supports both uploaded files and live recordings.
+    Endpoint for speech-to-text conversion.
+    Supports multiple languages with Azerbaijani as default.
     """
     try:
+        # Validate language
+        try:
+            selected_language = Language(language)
+        except ValueError:
+            selected_language = DEFAULT_LANGUAGE
+            logger.warning(f"Invalid language {language}, using default")
+
         # Process audio file
         temp_path = await save_audio_file(file)
         
         # Transcribe with Whisper
-        raw_transcript = await transcribe_audio(temp_path, "azerbaijani")
+        raw_transcript = await transcribe_audio(
+            temp_path, 
+            LANGUAGE_CONFIG[selected_language]["whisper_code"]
+        )
         
         # Correct the transcript
-        corrected_transcript = await correct_transcript(raw_transcript)
+        corrected_transcript = await correct_transcript(
+            raw_transcript, 
+            selected_language
+        )
         
         # Cleanup
         if os.path.exists(temp_path):
@@ -111,7 +184,7 @@ async def transcribe_azerbaijani(
         return JSONResponse({
             "success": True,
             "transcript": corrected_transcript,
-            "language": "azerbaijani"
+            "language": selected_language.value
         })
     except Exception as e:
         logger.error(f"Error in transcription: {str(e)}")
@@ -278,10 +351,10 @@ async def save_audio_file(file: UploadFile) -> str:
             )
         raise e
 
-async def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
+async def transcribe_audio(file_path: str, language_code: str) -> str:
     """
     Transcribe audio using Whisper API.
-    Optimized for Azerbaijani when specified.
+    Optimized for specified language.
     """
     try:
         with open(file_path, "rb") as audio_file:
@@ -289,8 +362,8 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
                 model="whisper-1",
                 file=audio_file,
                 response_format="text",
-                language="az" if language == "azerbaijani" else language,
-                prompt="This is Azerbaijani speech. Please transcribe accurately."
+                language=language_code,
+                prompt=LANGUAGE_CONFIG[Language(language_code)]["prompt"]
             )
         
         logger.info("=== Raw Whisper Transcript ===")
@@ -301,35 +374,52 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
         logger.error(f"Transcription error: {str(e)}")
         raise e
 
-async def generate_summary(transcript: str) -> str:
+async def generate_summary(transcript: str, language: str = DEFAULT_LANGUAGE.value) -> str:
     """
     Generate a summary of the transcribed text using GPT-4o.
+    Now supports multiple languages.
     """
     try:
+        # Get language enum
+        try:
+            selected_language = Language(language)
+        except ValueError:
+            selected_language = DEFAULT_LANGUAGE
+
+        # Language-specific instructions
+        language_instructions = {
+            Language.AZERBAIJANI: "Generate a concise and accurate summary in Azerbaijani.",
+            Language.ENGLISH: "Generate a concise and accurate summary in English.",
+            Language.TURKISH: "Generate a concise and accurate summary in Turkish.",
+            Language.FRENCH: "Generate a concise and accurate summary in French.",
+            Language.ARABIC: "Generate a concise and accurate summary in Arabic.",
+            Language.CHINESE: "Generate a concise and accurate summary in Chinese."
+        }
+
         response = client.chat.completions.create(
-            model="gpt-4o",  # Updated to use GPT-4o for better performance
+            model="gpt-4o",
             messages=[
                 {
                     "role": "system", 
-                    "content": """You are an expert in Azerbaijani language and summarization.
+                    "content": f"""You are an expert in {LANGUAGE_CONFIG[selected_language]['name']} and summarization.
                                 Your task is to:
-                                - Generate a concise and accurate summary of the transcribed text.
+                                - {language_instructions.get(selected_language, language_instructions[DEFAULT_LANGUAGE])}
                                 - Maintain key terminology and cultural context.
-                                - Keep the summary in Azerbaijani, preserving the core meaning.
+                                - Keep the summary in the target language, preserving the core meaning.
                                 
                                 Guidelines:
-                                - Use clear and natural Azerbaijani language.
+                                - Use clear and natural language appropriate for the target language.
                                 - Keep the summary brief but informative.
                                 - Avoid unnecessary repetition.
                                 
-                                Return ONLY the summary in Azerbaijani, without additional explanations."""
+                                Return ONLY the summary in the target language, without additional explanations."""
                 },
                 {
                     "role": "user", 
-                    "content": f"Provide a concise summary of this text in Azerbaijani:\n\n{transcript}"
+                    "content": f"Provide a concise summary of this text:\n\n{transcript}"
                 }
             ],
-            temperature=0.5,  # Lowered temperature for more precise summaries
+            temperature=0.5,
             max_tokens=300
         )
         return response.choices[0].message.content.strip()
@@ -337,18 +427,28 @@ async def generate_summary(transcript: str) -> str:
         logger.error(f"Error generating summary: {str(e)}", exc_info=True)
         raise e
 
-
-async def correct_transcript(transcript: str) -> str:
+async def correct_transcript(transcript: str, language: Language) -> str:
     """
     Correct the transcribed text using GPT-4o to fix any voice-to-text errors and improve formatting.
+    Now supports multiple languages.
     """
     try:
+        # Language-specific system prompts
+        language_prompts = {
+            Language.AZERBAIJANI: "You are an expert in Azerbaijani language, phonetics, and natural speech processing.",
+            Language.ENGLISH: "You are an expert in English language, phonetics, and natural speech processing.",
+            Language.TURKISH: "You are an expert in Turkish language, phonetics, and natural speech processing.",
+            Language.FRENCH: "You are an expert in French language, phonetics, and natural speech processing.",
+            Language.ARABIC: "You are an expert in Arabic language, phonetics, and natural speech processing.",
+            Language.CHINESE: "You are an expert in Chinese language, phonetics, and natural speech processing."
+        }
+
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
                     "role": "system",
-                    "content": """You are an expert in Azerbaijani language, phonetics, and natural speech processing.
+                    "content": f"""{language_prompts.get(language, language_prompts[DEFAULT_LANGUAGE])}
                     Your task is to correct errors in a voice-to-text transcript while keeping the spoken structure intact.
 
                     **Key Instructions:**
@@ -358,11 +458,11 @@ async def correct_transcript(transcript: str) -> str:
                     4. Replace incorrect words with **phonetically similar and contextually relevant** alternatives **only when necessary**.
                     5. Apply proper capitalization, sentence structure, and paragraph formatting.
                     6. Break long sentences into shorter, more readable ones while maintaining the speaker's intent.
-                    7. Ensure the final text flows naturally and reads as authentic Azerbaijani speech.
+                    7. Ensure the final text flows naturally and reads as authentic speech in the target language.
 
                     **Guidelines:**
                     - Do **not** remove or replace words unless they are transcription errors or grammatically incorrect.
-                    - Apply correct Azerbaijani punctuation and spacing.
+                    - Apply correct punctuation and spacing for the target language.
                     - Avoid changing the original tone or intent of the text.
                     - When in doubt, prioritize grammatical accuracy while preserving the original wording.
 
@@ -383,23 +483,11 @@ async def correct_transcript(transcript: str) -> str:
         logger.info("Raw transcript: " + transcript)
         logger.info("Corrected transcript: " + corrected_text)
         
-        # Log specific corrections if there were changes
-        if corrected_text != transcript:
-            # Find and log specific word corrections
-            raw_words = transcript.split()
-            corrected_words = corrected_text.split()
-            
-            # Log word-level corrections
-            for i in range(min(len(raw_words), len(corrected_words))):
-                if raw_words[i] != corrected_words[i]:
-                    logger.info(f"Word correction: '{raw_words[i]}' → '{corrected_words[i]}'")
-            
         return corrected_text
         
     except Exception as e:
         logger.error(f"Correction error: {str(e)}")
         raise e
-
 
 @app.get("/health")
 async def health_check():
