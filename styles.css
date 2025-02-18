@@ -613,19 +613,19 @@ audio {
     padding: 0.5rem 2.5rem 0.5rem 1rem;
     border: 2px solid var(--border-color);
     border-radius: 0.5rem;
-    font-size: 1rem;
+    font-size: 0.95rem;
     background-color: var(--surface-color);
     color: var(--text-color);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     appearance: none;
     -webkit-appearance: none;
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
     background-repeat: no-repeat;
     background-position: right 0.7rem center;
     background-size: 1em;
-    min-width: 185px;
-    max-width: 225px;
+    min-width: 190px;
+    max-width: 230px;
 }
 
 .language-select:hover {
@@ -833,13 +833,13 @@ audio {
     cursor: pointer;
     transition: all 0.2s ease;
     opacity: 0.5;
-    filter: grayscale(30%);
+    filter: grayscale(40%);
 }
 
 .flag-button:hover {
     transform: translateY(-2px);
     opacity: 0.8;
-    filter: grayscale(10%);
+    filter: grayscale(20%);
 }
 
 .flag-button.active {

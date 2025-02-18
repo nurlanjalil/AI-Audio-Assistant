@@ -43,7 +43,8 @@ const translations = {
         selectFileFirst: "Xahiş edirik əvvəlcə fayl seçin və ya səs yazın",
         transcribeFirst: "Xahiş edirik əvvəlcə audio faylı mətnə çevirin",
         connectionError: "Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.",
-        summaryError: "Xülasə yaratmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin."
+        summaryError: "Xülasə yaratmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.",
+        loadLanguagesError: "Dil siyahısını yükləmək mümkün olmadı. Xahiş edirik səhifəni yeniləyin."
     },
     en: {
         support: "Support",
@@ -77,7 +78,8 @@ const translations = {
         selectFileFirst: "Please select a file or record audio first",
         transcribeFirst: "Please transcribe the audio file first",
         connectionError: "Could not connect to server. Please try again later.",
-        summaryError: "Could not generate summary. Please try again later."
+        summaryError: "Could not generate summary. Please try again later.",
+        loadLanguagesError: "Error loading languages. Please try again later."
     },
     ru: {
         support: "Поддержка",
@@ -111,7 +113,8 @@ const translations = {
         selectFileFirst: "Пожалуйста, сначала выберите файл или запишите аудио",
         transcribeFirst: "Пожалуйста, сначала преобразуйте аудиофайл в текст",
         connectionError: "Не удалось подключиться к серверу. Пожалуйста, попробуйте позже.",
-        summaryError: "Не удалось создать резюме. Пожалуйста, попробуйте позже."
+        summaryError: "Не удалось создать резюме. Пожалуйста, попробуйте позже.",
+        loadLanguagesError: "Ошибка загрузки языков. Пожалуйста, попробуйте позже."
     }
 };
 
@@ -378,72 +381,16 @@ function updateUIAfterFileSelection(file) {
 
 // Load languages when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    // Load saved UI language preference or use default
+    // Load saved UI language preference or use default 'az'
     const savedUILang = localStorage.getItem('uiLanguage') || 'az';
-    uiLanguageSelect.value = savedUILang;
     updateUILanguage(savedUILang);
     setActiveFlag(savedUILang);
     
     // Load languages for transcription
-    loadLanguages();
+    loadTranscriptionLanguages();
 });
 
-// Language selection handler
-languageSelect.addEventListener('change', (e) => {
-    currentLanguage = e.target.value;
-    // Store the selected language in localStorage to persist it
-    localStorage.setItem('selectedLanguage', currentLanguage);
-    // Enhanced logging for language selection
-    console.log('Language changed:', {
-        selectedValue: e.target.value,
-        currentLanguage: currentLanguage,
-        selectElement: languageSelect.value,
-        storedInLocalStorage: localStorage.getItem('selectedLanguage')
-    });
-});
-
-// Language Handling
-async function loadLanguages() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/languages`);
-        const data = await response.json();
-        
-        // Clear existing options
-        languageSelect.innerHTML = '';
-        
-        // Add language options
-        data.languages.forEach(lang => {
-            const option = document.createElement('option');
-            option.value = lang.code;
-            option.className = 'language-option';
-            option.innerHTML = `${lang.flag} ${lang.name}`;
-            languageSelect.appendChild(option);
-        });
-        
-        // Restore previously selected language or use default
-        const savedLanguage = localStorage.getItem('selectedLanguage');
-        if (savedLanguage && data.languages.some(lang => lang.code === savedLanguage)) {
-            languageSelect.value = savedLanguage;
-            currentLanguage = savedLanguage;
-        } else {
-            languageSelect.value = data.default;
-            currentLanguage = data.default;
-        }
-        
-        // Enhanced logging for initial language setup
-        console.log('Language initialization:', {
-            savedLanguage,
-            defaultFromServer: data.default,
-            currentLanguage: currentLanguage,
-            selectValue: languageSelect.value
-        });
-    } catch (error) {
-        console.error('Error loading languages:', error);
-        alert('Dil siyahısını yükləmək mümkün olmadı. Xahiş edirik səhifəni yeniləyin.');
-    }
-}
-
-// UI Language Selection
+// UI Language Selection with Flags
 const flagButtons = document.querySelectorAll('.flag-button');
 
 // Handle flag button clicks
@@ -493,11 +440,55 @@ function updateUILanguage(language) {
     document.documentElement.lang = language;
 }
 
-// UI Language selection handler
-uiLanguageSelect.addEventListener('change', (e) => {
-    const lang = e.target.value;
-    localStorage.setItem('uiLanguage', lang);
-    updateUILanguage(lang);
+// Transcription Language Handling
+async function loadTranscriptionLanguages() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/languages`);
+        const data = await response.json();
+        
+        // Clear existing options
+        languageSelect.innerHTML = '';
+        
+        // Add language options
+        data.languages.forEach(lang => {
+            const option = document.createElement('option');
+            option.value = lang.code;
+            option.className = 'language-option';
+            option.innerHTML = `${lang.flag} ${lang.name}`;
+            languageSelect.appendChild(option);
+        });
+        
+        // Restore previously selected language or use default
+        const savedLanguage = localStorage.getItem('selectedTranscriptionLanguage') || 'az';
+        if (savedLanguage && data.languages.some(lang => lang.code === savedLanguage)) {
+            languageSelect.value = savedLanguage;
+            currentLanguage = savedLanguage;
+        } else {
+            languageSelect.value = data.default;
+            currentLanguage = data.default;
+        }
+        
+        console.log('Transcription Language initialization:', {
+            savedLanguage,
+            defaultFromServer: data.default,
+            currentLanguage: currentLanguage,
+            selectValue: languageSelect.value
+        });
+    } catch (error) {
+        console.error('Error loading languages:', error);
+        alert(translations[currentUILanguage]?.loadLanguagesError || translations.az.loadLanguagesError);
+    }
+}
+
+// Transcription Language selection handler
+languageSelect.addEventListener('change', (e) => {
+    currentLanguage = e.target.value;
+    localStorage.setItem('selectedTranscriptionLanguage', currentLanguage);
+    console.log('Transcription Language changed:', {
+        selectedValue: e.target.value,
+        currentLanguage: currentLanguage,
+        storedInLocalStorage: localStorage.getItem('selectedTranscriptionLanguage')
+    });
 });
 
 // Process Audio File
@@ -514,7 +505,7 @@ async function processAudioFile() {
     console.log('Pre-submission state:', {
         currentLanguage,
         selectValue: languageSelect.value,
-        storedLanguage: localStorage.getItem('selectedLanguage'),
+        storedLanguage: localStorage.getItem('selectedTranscriptionLanguage'),
         uiLanguage: currentUILanguage
     });
 
@@ -545,7 +536,7 @@ async function processAudioFile() {
             selectedLanguage,
             currentLanguage,
             selectValue: languageSelect.value,
-            storedLanguage: localStorage.getItem('selectedLanguage'),
+            storedLanguage: localStorage.getItem('selectedTranscriptionLanguage'),
             isLiveRecording: file.name.startsWith('recording.wav')
         });
 
