@@ -76,6 +76,7 @@ class Language(Enum):
     """Supported languages for transcription and summarization."""
     AZERBAIJANI = "az"
     ENGLISH = "en"
+    RUSSIAN = "ru"
     TURKISH = "tr"
     FRENCH = "fr"
     ARABIC = "ar"
@@ -94,6 +95,12 @@ LANGUAGE_CONFIG = {
         "whisper_code": "en",
         "prompt": "This is English speech. Please transcribe accurately.",
         "flag": "🇬🇧"
+    },
+    Language.RUSSIAN: {
+        "name": "Русский",
+        "whisper_code": "ru",
+        "prompt": "This is Russian speech. Please transcribe accurately.",
+        "flag": "🇷🇺"
     },
     Language.TURKISH: {
         "name": "Türkçe",
