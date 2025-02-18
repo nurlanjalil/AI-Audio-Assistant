@@ -177,7 +177,17 @@ newFileButton.addEventListener('click', () => {
 // Recording Handlers
 startRecord.addEventListener('click', async () => {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                sampleRate: 48000,
+                sampleSize: 16,
+                channelCount: 1,
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                latency: 0
+            }
+        });
         startRecording(stream);
         
         startRecord.disabled = true;
@@ -355,7 +365,34 @@ async function processAudioFile(isSummary) {
 // Recording Functions
 function startRecording(stream) {
     audioChunks = [];
-    mediaRecorder = new MediaRecorder(stream);
+    
+    // Create an AudioContext for processing
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(stream);
+    
+    // Create and configure a high-pass filter
+    const highPassFilter = audioContext.createBiquadFilter();
+    highPassFilter.type = 'highpass';
+    highPassFilter.frequency.value = 80; // Remove very low frequencies
+    
+    // Create and configure a low-pass filter
+    const lowPassFilter = audioContext.createBiquadFilter();
+    lowPassFilter.type = 'lowpass';
+    lowPassFilter.frequency.value = 20000; // Remove very high frequencies
+    
+    // Connect the audio processing chain
+    source.connect(highPassFilter);
+    highPassFilter.connect(lowPassFilter);
+    
+    // Create a destination node to capture the processed audio
+    const destination = audioContext.createMediaStreamDestination();
+    lowPassFilter.connect(destination);
+    
+    // Initialize MediaRecorder with the processed stream
+    mediaRecorder = new MediaRecorder(destination.stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 128000 // Set higher bitrate for better quality
+    });
 
     mediaRecorder.addEventListener('dataavailable', event => {
         audioChunks.push(event.data);
@@ -370,8 +407,9 @@ function startRecording(stream) {
         audioPreview.src = audioUrl;
         recordPreview.classList.remove('hidden');
         
-        // Stop all tracks to release the microphone
+        // Stop all tracks and close audio context
         stream.getTracks().forEach(track => track.stop());
+        audioContext.close();
     });
 
     mediaRecorder.start(100);
@@ -415,7 +453,17 @@ summaryMethodButtons.forEach(button => {
 // Add recording handlers for summary tab
 summaryStartRecord.addEventListener('click', async () => {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                sampleRate: 48000,
+                sampleSize: 16,
+                channelCount: 1,
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                latency: 0
+            }
+        });
         startSummaryRecording(stream);
         
         summaryStartRecord.disabled = true;
@@ -446,7 +494,34 @@ summaryStopRecord.addEventListener('click', () => {
 // Add recording functions for summary tab
 function startSummaryRecording(stream) {
     summaryAudioChunks = [];
-    summaryMediaRecorder = new MediaRecorder(stream);
+    
+    // Create an AudioContext for processing
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(stream);
+    
+    // Create and configure a high-pass filter
+    const highPassFilter = audioContext.createBiquadFilter();
+    highPassFilter.type = 'highpass';
+    highPassFilter.frequency.value = 80; // Remove very low frequencies
+    
+    // Create and configure a low-pass filter
+    const lowPassFilter = audioContext.createBiquadFilter();
+    lowPassFilter.type = 'lowpass';
+    lowPassFilter.frequency.value = 20000; // Remove very high frequencies
+    
+    // Connect the audio processing chain
+    source.connect(highPassFilter);
+    highPassFilter.connect(lowPassFilter);
+    
+    // Create a destination node to capture the processed audio
+    const destination = audioContext.createMediaStreamDestination();
+    lowPassFilter.connect(destination);
+    
+    // Initialize MediaRecorder with the processed stream
+    summaryMediaRecorder = new MediaRecorder(destination.stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 128000 // Set higher bitrate for better quality
+    });
 
     summaryMediaRecorder.addEventListener('dataavailable', event => {
         summaryAudioChunks.push(event.data);
@@ -460,7 +535,9 @@ function startSummaryRecording(stream) {
         summaryAudioPreview.src = audioUrl;
         summaryRecordPreview.classList.remove('hidden');
         
+        // Stop all tracks and close audio context
         stream.getTracks().forEach(track => track.stop());
+        audioContext.close();
     });
 
     summaryMediaRecorder.start(100);
