@@ -390,7 +390,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // Language selection handler
 languageSelect.addEventListener('change', (e) => {
     currentLanguage = e.target.value;
-    console.log('Language selected:', currentLanguage); // Add logging
+    // Store the selected language in localStorage to persist it
+    localStorage.setItem('selectedLanguage', currentLanguage);
+    // Enhanced logging for language selection
+    console.log('Language changed:', {
+        selectedValue: e.target.value,
+        currentLanguage: currentLanguage,
+        selectElement: languageSelect.value,
+        storedInLocalStorage: localStorage.getItem('selectedLanguage')
+    });
 });
 
 // Language Handling
@@ -411,10 +419,23 @@ async function loadLanguages() {
             languageSelect.appendChild(option);
         });
         
-        // Set default language and update currentLanguage
-        languageSelect.value = data.default;
-        currentLanguage = data.default;
-        console.log('Initial language set to:', currentLanguage); // Add logging
+        // Restore previously selected language or use default
+        const savedLanguage = localStorage.getItem('selectedLanguage');
+        if (savedLanguage && data.languages.some(lang => lang.code === savedLanguage)) {
+            languageSelect.value = savedLanguage;
+            currentLanguage = savedLanguage;
+        } else {
+            languageSelect.value = data.default;
+            currentLanguage = data.default;
+        }
+        
+        // Enhanced logging for initial language setup
+        console.log('Language initialization:', {
+            savedLanguage,
+            defaultFromServer: data.default,
+            currentLanguage: currentLanguage,
+            selectValue: languageSelect.value
+        });
     } catch (error) {
         console.error('Error loading languages:', error);
         alert('Dil siyahısını yükləmək mümkün olmadı. Xahiş edirik səhifəni yeniləyin.');
@@ -459,6 +480,14 @@ async function processAudioFile() {
         return;
     }
 
+    // Enhanced logging before form submission
+    console.log('Pre-submission state:', {
+        currentLanguage,
+        selectValue: languageSelect.value,
+        storedLanguage: localStorage.getItem('selectedLanguage'),
+        uiLanguage: currentUILanguage
+    });
+
     // Hide file info and show loading
     fileInfo.classList.add('hidden');
     processButton.classList.add('hidden');
@@ -470,10 +499,24 @@ async function processAudioFile() {
         const formData = new FormData();
         formData.append('file', file);
         
-        // Ensure we're using the selected language, with a more explicit fallback
-        const selectedLanguage = currentLanguage || languageSelect.value;
-        console.log('Sending transcription request with language:', selectedLanguage); // Add logging
+        // Always use the current select value to ensure consistency
+        const selectedLanguage = languageSelect.value;
+        
+        // Enhanced logging for form submission
+        console.log('Submitting transcription request:', {
+            selectedLanguage,
+            currentLanguage,
+            selectValue: languageSelect.value,
+            storedLanguage: localStorage.getItem('selectedLanguage')
+        });
+
+        // Add language parameter to FormData
         formData.append('language', selectedLanguage);
+
+        // Log the actual FormData entries
+        for (let pair of formData.entries()) {
+            console.log('FormData entry:', pair[0], pair[1]);
+        }
 
         // Use the main transcribe endpoint
         const response = await fetch(`${API_BASE_URL}/transcribe/`, {
@@ -487,6 +530,13 @@ async function processAudioFile() {
         }
 
         const data = await response.json();
+        
+        // Log the response
+        console.log('Transcription response:', {
+            success: data.success,
+            language: data.language,
+            requestedLanguage: selectedLanguage
+        });
 
         // Update results display
         transcriptContent.textContent = data.transcript || '';
@@ -503,7 +553,7 @@ async function processAudioFile() {
         resultContainer.classList.remove('hidden');
 
     } catch (error) {
-        console.error('Detailed error:', error);
+        console.error('Transcription error:', error);
         let errorMessage = error.message;
         
         // Get translated error messages based on UI language, not transcription language

@@ -162,22 +162,47 @@ async def transcribe_audio_endpoint(
     Supports multiple languages with Azerbaijani as default.
     """
     try:
-        # Log received language parameter
-        logger.info(f"Received transcription request with language parameter: {language}")
+        # Log raw request details
+        logger.info("=== Transcription Request Details ===")
+        logger.info(f"Raw language parameter: '{language}'")
+        logger.info(f"Parameter type: {type(language)}")
+        logger.info(f"Default language: '{DEFAULT_LANGUAGE.value}'")
+        logger.info(f"Available languages: {[lang.value for lang in Language]}")
         
-        # Validate language
+        # Validate and process language parameter
         try:
-            selected_language = Language(language)
-            logger.info(f"Selected language validated: {selected_language.value} ({LANGUAGE_CONFIG[selected_language]['name']})")
-        except ValueError:
-            logger.warning(f"Invalid language {language}, using default {DEFAULT_LANGUAGE.value}")
+            # Clean the language parameter
+            cleaned_language = language.lower().strip() if language else DEFAULT_LANGUAGE.value
+            logger.info(f"Cleaned language parameter: '{cleaned_language}'")
+            
+            # Validate against available languages
+            available_languages = [lang.value for lang in Language]
+            if cleaned_language not in available_languages:
+                logger.warning(f"Language '{cleaned_language}' not in available languages: {available_languages}")
+                logger.warning(f"Falling back to default: {DEFAULT_LANGUAGE.value}")
+                selected_language = DEFAULT_LANGUAGE
+            else:
+                selected_language = Language(cleaned_language)
+                logger.info(f"Successfully validated language: '{selected_language.value}'")
+                logger.info(f"Language details: {LANGUAGE_CONFIG[selected_language]}")
+        
+        except ValueError as ve:
+            logger.error(f"ValueError in language validation: {str(ve)}")
+            logger.error(f"Input that caused error: '{language}'")
+            selected_language = DEFAULT_LANGUAGE
+        except Exception as e:
+            logger.error(f"Unexpected error in language validation: {str(e)}")
+            logger.error(f"Input that caused error: '{language}'")
             selected_language = DEFAULT_LANGUAGE
 
         # Process audio file
         temp_path = await save_audio_file(file)
         
-        # Log Whisper API parameters
-        logger.info(f"Calling Whisper API with language_code: {LANGUAGE_CONFIG[selected_language]['whisper_code']}")
+        # Log Whisper API preparation
+        logger.info("=== Whisper API Call Preparation ===")
+        logger.info(f"Selected language: '{selected_language.value}'")
+        logger.info(f"Whisper language code: '{LANGUAGE_CONFIG[selected_language]['whisper_code']}'")
+        logger.info(f"Using prompt: '{LANGUAGE_CONFIG[selected_language]['prompt']}'")
         
         # Transcribe with Whisper
         raw_transcript = await transcribe_audio(
@@ -185,6 +210,11 @@ async def transcribe_audio_endpoint(
             LANGUAGE_CONFIG[selected_language]["whisper_code"],
             LANGUAGE_CONFIG[selected_language]["prompt"]
         )
+        
+        # Log raw transcript
+        logger.info("=== Raw Transcript ===")
+        logger.info(f"Length: {len(raw_transcript)} characters")
+        logger.info(f"First 100 chars: {raw_transcript[:100]}...")
         
         # Correct the transcript
         corrected_transcript = await correct_transcript(
@@ -196,13 +226,22 @@ async def transcribe_audio_endpoint(
         if os.path.exists(temp_path):
             os.remove(temp_path)
         
+        # Log response preparation
+        logger.info("=== Preparing Response ===")
+        logger.info(f"Final language: '{selected_language.value}'")
+        logger.info(f"Transcript length: {len(corrected_transcript)} characters")
+        
         return JSONResponse({
             "success": True,
             "transcript": corrected_transcript,
-            "language": selected_language.value
+            "language": selected_language.value,
+            "requested_language": language  # Include the original requested language
         })
     except Exception as e:
-        logger.error(f"Error in transcription: {str(e)}")
+        logger.error("=== Transcription Error ===")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error message: {str(e)}")
+        logger.error("Full traceback:", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
 
 @app.post("/summarize-audio/")
