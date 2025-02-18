@@ -86,32 +86,38 @@ LANGUAGE_CONFIG = {
     Language.AZERBAIJANI: {
         "name": "Azərbaycan dili",
         "whisper_code": "az",
-        "prompt": "This is Azerbaijani speech. Please transcribe accurately."
+        "prompt": "This is Azerbaijani speech. Please transcribe accurately.",
+        "flag": "🇦🇿"
     },
     Language.ENGLISH: {
         "name": "English",
         "whisper_code": "en",
-        "prompt": "This is English speech. Please transcribe accurately."
+        "prompt": "This is English speech. Please transcribe accurately.",
+        "flag": "🇬🇧"
     },
     Language.TURKISH: {
         "name": "Türkçe",
         "whisper_code": "tr",
-        "prompt": "This is Turkish speech. Please transcribe accurately."
+        "prompt": "This is Turkish speech. Please transcribe accurately.",
+        "flag": "🇹🇷"
     },
     Language.FRENCH: {
         "name": "Français",
         "whisper_code": "fr",
-        "prompt": "This is French speech. Please transcribe accurately."
+        "prompt": "This is French speech. Please transcribe accurately.",
+        "flag": "🇫🇷"
     },
     Language.ARABIC: {
         "name": "العربية",
         "whisper_code": "ar",
-        "prompt": "This is Arabic speech. Please transcribe accurately."
+        "prompt": "This is Arabic speech. Please transcribe accurately.",
+        "flag": "🇸🇦"
     },
     Language.CHINESE: {
         "name": "中文",
         "whisper_code": "zh",
-        "prompt": "This is Chinese speech. Please transcribe accurately."
+        "prompt": "This is Chinese speech. Please transcribe accurately.",
+        "flag": "🇨🇳"
     }
 }
 
@@ -125,7 +131,7 @@ async def root():
         "endpoints": {
             "/": "This help message",
             "/health": "Health check endpoint",
-            "/transcribe-azerbaijani/": "Convert Azerbaijani speech to text",
+            "/transcribe/": "Convert speech to text",
             "/summarize-audio/": "Transcribe and summarize audio content",
             "/transcribe-live/": "Convert live recorded Azerbaijani speech to text"
         }
@@ -138,14 +144,15 @@ async def get_languages():
         "languages": [
             {
                 "code": lang.value,
-                "name": LANGUAGE_CONFIG[lang]["name"]
+                "name": LANGUAGE_CONFIG[lang]["name"],
+                "flag": LANGUAGE_CONFIG[lang]["flag"]
             } for lang in Language
         ],
         "default": DEFAULT_LANGUAGE.value
     }
 
-@app.post("/transcribe-azerbaijani/")
-async def transcribe_azerbaijani(
+@app.post("/transcribe/")
+async def transcribe_audio_endpoint(
     file: UploadFile = File(...),
     language: str = DEFAULT_LANGUAGE.value,
     live_recording: bool = False
@@ -249,7 +256,7 @@ async def transcribe_live(file: UploadFile = File(...)):
     Endpoint specifically for live recorded Azerbaijani speech.
     Optimized for real-time audio processing.
     """
-    return await transcribe_azerbaijani(file, live_recording=True)
+    return await transcribe_audio_endpoint(file, live_recording=True)
 
 async def enhance_audio(audio_segment: AudioSegment) -> AudioSegment:
     """
@@ -507,4 +514,14 @@ async def health_check():
             "python_version": sys.version,
             "temp_dir_writable": os.access(TEMP_DIR, os.W_OK)
         }
-    } 
+    }
+
+# Add a redirect for backward compatibility
+@app.post("/transcribe-azerbaijani/")
+async def transcribe_azerbaijani_legacy(
+    file: UploadFile = File(...),
+    language: str = DEFAULT_LANGUAGE.value,
+    live_recording: bool = False
+):
+    """Legacy endpoint that redirects to the new transcribe endpoint."""
+    return await transcribe_audio_endpoint(file, language, live_recording) 

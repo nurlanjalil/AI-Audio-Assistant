@@ -266,13 +266,17 @@ async function loadLanguages() {
         data.languages.forEach(lang => {
             const option = document.createElement('option');
             option.value = lang.code;
-            option.textContent = lang.name;
+            option.className = 'language-option';
+            option.innerHTML = `${lang.flag} ${lang.name}`;
             languageSelect.appendChild(option);
         });
         
         // Set default language
         languageSelect.value = data.default;
         currentLanguage = data.default;
+        
+        // Update UI text based on selected language
+        updateUILanguage(currentLanguage);
     } catch (error) {
         console.error('Error loading languages:', error);
         alert('Dil siyahısını yükləmək mümkün olmadı. Xahiş edirik səhifəni yeniləyin.');
@@ -285,14 +289,72 @@ document.addEventListener('DOMContentLoaded', loadLanguages);
 // Language selection handler
 languageSelect.addEventListener('change', (e) => {
     currentLanguage = e.target.value;
+    updateUILanguage(currentLanguage);
 });
+
+// Update UI text based on selected language
+function updateUILanguage(language) {
+    const translations = {
+        az: {
+            fileSelect: 'Fayl Seçin',
+            dropText: 'Audio faylı buraya sürüşdürün və ya',
+            supportedFormats: 'Dəstəklənən formatlar: MP3, WAV, M4A',
+            durationWarning: '⚠️ Audio faylın uzunluğu 5 dəqiqədən çox olmamalıdır',
+            invalidFile: 'Xahiş edirik düzgün audio fayl yükləyin (MP3, WAV və ya M4A)',
+            fileTooLarge: 'Audio faylın həcmi 25MB-dan çox ola bilməz',
+            fileTooLong: 'Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz.',
+            selectFile: 'Xahiş edirik əvvəlcə fayl seçin və ya səs yazın',
+            processing: 'Mətniniz hazırlanır, zəhmət olmasa gözləyin..',
+            transcribeFirst: 'Xahiş edirik əvvəlcə audio faylı mətnə çevirin',
+            connectionError: 'Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.',
+            summaryError: 'Xülasə yaratmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.'
+        },
+        en: {
+            fileSelect: 'Select File',
+            dropText: 'Drop audio file here or',
+            supportedFormats: 'Supported formats: MP3, WAV, M4A',
+            durationWarning: '⚠️ Audio file must not exceed 5 minutes',
+            invalidFile: 'Please upload a valid audio file (MP3, WAV, or M4A)',
+            fileTooLarge: 'Audio file size must not exceed 25MB',
+            fileTooLong: 'Audio duration must not exceed 5 minutes',
+            selectFile: 'Please select a file or record audio first',
+            processing: 'Processing your text, please wait..',
+            transcribeFirst: 'Please transcribe the audio file first',
+            connectionError: 'Could not connect to server. Please try again later.',
+            summaryError: 'Could not generate summary. Please try again later.'
+        },
+        tr: {
+            fileSelect: 'Dosya Seç',
+            dropText: 'Ses dosyasını buraya sürükleyin veya',
+            supportedFormats: 'Desteklenen formatlar: MP3, WAV, M4A',
+            durationWarning: '⚠️ Ses dosyası 5 dakikayı geçmemelidir',
+            invalidFile: 'Lütfen geçerli bir ses dosyası yükleyin (MP3, WAV veya M4A)',
+            fileTooLarge: 'Ses dosyası boyutu 25MB\'ı geçmemelidir',
+            fileTooLong: 'Ses süresi 5 dakikayı geçmemelidir',
+            selectFile: 'Lütfen önce bir dosya seçin veya ses kaydedin',
+            processing: 'Metniniz işleniyor, lütfen bekleyin..',
+            transcribeFirst: 'Lütfen önce ses dosyasını metne çevirin',
+            connectionError: 'Sunucuya bağlanılamadı. Lütfen daha sonra tekrar deneyin.',
+            summaryError: 'Özet oluşturulamadı. Lütfen daha sonra tekrar deneyin.'
+        }
+    };
+
+    const t = translations[language] || translations.az;
+
+    // Update UI elements
+    document.querySelector('.upload-button').textContent = t.fileSelect;
+    document.querySelector('.upload-content p').textContent = t.dropText;
+    document.querySelector('.file-types').textContent = t.supportedFormats;
+    document.querySelector('.duration-note').textContent = t.durationWarning;
+}
 
 // Process Audio File
 async function processAudioFile() {
     let file = currentRecordedFile || fileInput.files[0];
     
     if (!file) {
-        alert('Xahiş edirik əvvəlcə fayl seçin və ya səs yazın');
+        const message = translations[currentLanguage]?.selectFile || translations.az.selectFile;
+        alert(message);
         return;
     }
 
@@ -308,7 +370,7 @@ async function processAudioFile() {
         formData.append('file', file);
         formData.append('language', currentLanguage);
 
-        const response = await fetch(`${API_BASE_URL}/transcribe-azerbaijani/`, {
+        const response = await fetch(`${API_BASE_URL}/transcribe/`, {
             method: 'POST',
             body: formData
         });
@@ -338,16 +400,19 @@ async function processAudioFile() {
         console.error('Detailed error:', error);
         let errorMessage = error.message;
         
+        // Get translated error messages
+        const t = translations[currentLanguage] || translations.az;
+        
         // Handle specific error cases
         if (error instanceof TypeError && error.message.includes('fetch')) {
-            errorMessage = 'Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.';
+            errorMessage = t.connectionError;
         } else if (errorMessage.includes('413') || errorMessage.includes('Maximum content size limit')) {
-            errorMessage = 'The audio file is too large. Please try compressing the file or using a shorter audio clip (maximum size: 25MB).';
+            errorMessage = t.fileTooLarge;
         } else if (errorMessage.includes('duration')) {
-            errorMessage = 'Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz';
+            errorMessage = t.fileTooLong;
         }
         
-        alert(`Xəta: ${errorMessage}`);
+        alert(errorMessage);
         
         // Restore UI on error
         fileInfo.classList.remove('hidden');
@@ -457,8 +522,10 @@ function updateRecordingTime() {
 // Add Generate Summary Button Handler
 generateSummaryButton.addEventListener('click', async () => {
     const transcript = transcriptContent.textContent;
+    const t = translations[currentLanguage] || translations.az;
+
     if (!transcript) {
-        alert('Xahiş edirik əvvəlcə audio faylı mətnə çevirin');
+        alert(t.transcribeFirst);
         return;
     }
 
@@ -503,8 +570,8 @@ generateSummaryButton.addEventListener('click', async () => {
         summaryContent.innerHTML = `
             <div class="summary-error">
                 ${error.message === 'Failed to fetch' 
-                    ? 'Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.'
-                    : 'Xülasə yaratmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.'}
+                    ? t.connectionError
+                    : t.summaryError}
             </div>
         `;
         setTimeout(() => {
