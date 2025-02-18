@@ -160,10 +160,14 @@ startRecord.addEventListener('click', async () => {
                 sampleRate: 48000,
                 sampleSize: 16,
                 channelCount: 1,
-                echoCancellation: false,
-                noiseSuppression: false,
-                autoGainControl: false,
-                latency: 0
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                latency: 0,
+                googEchoCancellation: true,
+                googAutoGainControl: true,
+                googNoiseSuppression: true,
+                googHighpassFilter: true
             }
         });
         startRecording(stream);
@@ -319,31 +323,51 @@ function startRecording(stream) {
     audioChunks = [];
     
     // Create an AudioContext for processing
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)({
+        sampleRate: 48000,
+        latencyHint: 'interactive'
+    });
     const source = audioContext.createMediaStreamSource(stream);
     
     // Create and configure a high-pass filter
     const highPassFilter = audioContext.createBiquadFilter();
     highPassFilter.type = 'highpass';
     highPassFilter.frequency.value = 80; // Remove very low frequencies
+    highPassFilter.Q.value = 0.7; // Gentle slope
     
     // Create and configure a low-pass filter
     const lowPassFilter = audioContext.createBiquadFilter();
     lowPassFilter.type = 'lowpass';
-    lowPassFilter.frequency.value = 20000; // Remove very high frequencies
+    lowPassFilter.frequency.value = 18000; // Remove very high frequencies
+    lowPassFilter.Q.value = 0.7; // Gentle slope
+    
+    // Create compressor for dynamic range control
+    const compressor = audioContext.createDynamicsCompressor();
+    compressor.threshold.value = -24;
+    compressor.knee.value = 12;
+    compressor.ratio.value = 4;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
+    
+    // Create gain node for volume control
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 1.2; // Slight volume boost
     
     // Connect the audio processing chain
     source.connect(highPassFilter);
     highPassFilter.connect(lowPassFilter);
+    lowPassFilter.connect(compressor);
+    compressor.connect(gainNode);
     
     // Create a destination node to capture the processed audio
     const destination = audioContext.createMediaStreamDestination();
-    lowPassFilter.connect(destination);
+    gainNode.connect(destination);
     
-    // Initialize MediaRecorder with the processed stream
+    // Initialize MediaRecorder with optimized settings
     mediaRecorder = new MediaRecorder(destination.stream, {
         mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 128000 // Set higher bitrate for better quality
+        audioBitsPerSecond: 128000, // Higher bitrate for better quality
+        bitsPerSecond: 128000 // Ensure consistent bitrate
     });
 
     mediaRecorder.addEventListener('dataavailable', event => {
@@ -352,11 +376,16 @@ function startRecording(stream) {
 
     mediaRecorder.addEventListener('stop', () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        currentRecordedFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+        currentRecordedFile = new File([audioBlob], 'recording.wav', { 
+            type: 'audio/wav',
+            lastModified: Date.now()
+        });
         
-        // Create audio preview
+        // Create audio preview with enhanced controls
         const audioUrl = URL.createObjectURL(audioBlob);
         audioPreview.src = audioUrl;
+        audioPreview.controls = true;
+        audioPreview.controlsList = "nodownload"; // Prevent download button
         recordPreview.classList.remove('hidden');
         
         // Stop all tracks and close audio context
@@ -364,6 +393,7 @@ function startRecording(stream) {
         audioContext.close();
     });
 
+    // Start recording with smaller timeslices for more frequent updates
     mediaRecorder.start(100);
 }
 

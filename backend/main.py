@@ -11,6 +11,8 @@ import logging
 import sys
 from typing import Dict, Optional
 import httpx
+import numpy as np
+from scipy import signal
 
 # Configure detailed logging
 logging.basicConfig(
@@ -176,6 +178,44 @@ async def transcribe_live(file: UploadFile = File(...)):
     """
     return await transcribe_azerbaijani(file, live_recording=True)
 
+async def enhance_audio(audio_segment: AudioSegment) -> AudioSegment:
+    """
+    Fast, lightweight audio enhancement optimized for voice.
+    Uses efficient numpy operations for minimal processing overhead.
+    """
+    # Convert audio to numpy array for faster processing
+    samples = np.array(audio_segment.get_array_of_samples())
+    sample_rate = audio_segment.frame_rate
+
+    # Normalize audio (fast operation)
+    samples = samples / (np.max(np.abs(samples)) + 1e-7)
+    
+    # Apply a fast high-pass filter to reduce low-frequency noise
+    # Using a lightweight Butterworth filter
+    nyquist = sample_rate / 2
+    cutoff = 80  # Hz
+    b, a = signal.butter(2, cutoff/nyquist, btype='high')
+    samples = signal.filtfilt(b, a, samples)
+    
+    # Fast dynamic range compression using numpy operations
+    threshold = 0.3
+    ratio = 0.6
+    mask = np.abs(samples) > threshold
+    samples[mask] = threshold + (np.abs(samples[mask]) - threshold) * ratio * np.sign(samples[mask])
+    
+    # Convert back to 16-bit PCM
+    samples = np.int16(samples * 32767)
+    
+    # Create enhanced AudioSegment
+    enhanced_audio = AudioSegment(
+        samples.tobytes(), 
+        frame_rate=sample_rate,
+        sample_width=2,
+        channels=1
+    )
+    
+    return enhanced_audio
+
 async def save_audio_file(file: UploadFile) -> str:
     """
     Save uploaded file and convert to WAV if necessary.
@@ -198,7 +238,7 @@ async def save_audio_file(file: UploadFile) -> str:
         with open(temp_path, "wb") as buffer:
             buffer.write(content)
         
-        # Check audio duration
+        # Load audio and check duration
         audio = AudioSegment.from_file(temp_path)
         duration_seconds = len(audio) / 1000  # Convert milliseconds to seconds
         
@@ -209,14 +249,21 @@ async def save_audio_file(file: UploadFile) -> str:
                 detail="Audio faylın uzunluğu 5 dəqiqədən çox ola bilməz"
             )
         
-        # Convert to WAV if needed
-        if not file.filename.lower().endswith('.wav'):
-            wav_path = os.path.join(TEMP_DIR, f"{process_id}.wav")
-            audio.export(wav_path, format="wav")
+        # Convert to mono for consistent processing
+        audio = audio.set_channels(1)
+        
+        # Enhance audio
+        enhanced_audio = await enhance_audio(audio)
+        
+        # Save enhanced audio
+        wav_path = os.path.join(TEMP_DIR, f"{process_id}.wav")
+        enhanced_audio.export(wav_path, format="wav")
+        
+        # Cleanup original file if it's different from the WAV path
+        if temp_path != wav_path:
             os.remove(temp_path)
-            temp_path = wav_path
             
-        return temp_path
+        return wav_path
     except HTTPException:
         if os.path.exists(temp_path):
             os.remove(temp_path)
@@ -224,7 +271,6 @@ async def save_audio_file(file: UploadFile) -> str:
     except Exception as e:
         if os.path.exists(temp_path):
             os.remove(temp_path)
-        # Check if it's a file size error from OpenAI
         if "Maximum content size limit" in str(e):
             raise HTTPException(
                 status_code=413,
