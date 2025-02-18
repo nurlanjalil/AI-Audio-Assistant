@@ -25,6 +25,8 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("openai").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("openai.http_client").setLevel(logging.WARNING)
+logging.getLogger("openai.client").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
