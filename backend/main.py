@@ -225,8 +225,7 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
                 prompt="This is Azerbaijani speech. Please transcribe accurately."
             )
         
-        logger.info("=== Raw Whisper Transcript ===")
-        logger.info(response)
+        # Just return the response, logging will be handled in correct_transcript
         return response
 
     except Exception as e:
@@ -310,14 +309,32 @@ async def correct_transcript(transcript: str) -> str:
         )
         
         corrected_text = response.choices[0].message.content.strip()
-        logger.info("=== Corrected Transcript ===")
-        logger.info(corrected_text)
         
-        # Only log significant changes
+        # Only log if there are changes
         if corrected_text != transcript:
-            logger.info("=== Significant Changes Made ===")
-            logger.info(f"Original: {transcript}")
+            # Calculate character difference
+            char_diff = len(corrected_text) - len(transcript)
+            
+            # Calculate word changes
+            original_words = set(transcript.split())
+            corrected_words = set(corrected_text.split())
+            added_words = corrected_words - original_words
+            removed_words = original_words - corrected_words
+            
+            # Log the changes in a structured way
+            logger.info("=== Transcription Results ===")
+            logger.info(f"Raw: {transcript}")
             logger.info(f"Corrected: {corrected_text}")
+            logger.info(f"Character difference: {char_diff}")
+            
+            if added_words:
+                logger.info(f"Added words: {', '.join(added_words)}")
+            if removed_words:
+                logger.info(f"Removed words: {', '.join(removed_words)}")
+        else:
+            logger.info("=== Transcription Results ===")
+            logger.info(f"Text: {transcript}")
+            logger.info("No corrections needed")
             
         return corrected_text
         
