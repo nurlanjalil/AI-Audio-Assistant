@@ -376,6 +376,23 @@ function updateUIAfterFileSelection(file) {
     processButton.classList.remove('hidden');
 }
 
+// Load languages when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Load saved UI language preference or use default
+    const savedUILang = localStorage.getItem('uiLanguage') || 'az';
+    uiLanguageSelect.value = savedUILang;
+    updateUILanguage(savedUILang);
+    
+    // Load languages for transcription
+    loadLanguages();
+});
+
+// Language selection handler
+languageSelect.addEventListener('change', (e) => {
+    currentLanguage = e.target.value;
+    console.log('Language selected:', currentLanguage); // Add logging
+});
+
 // Language Handling
 async function loadLanguages() {
     try {
@@ -394,30 +411,15 @@ async function loadLanguages() {
             languageSelect.appendChild(option);
         });
         
-        // Set default language
+        // Set default language and update currentLanguage
         languageSelect.value = data.default;
         currentLanguage = data.default;
+        console.log('Initial language set to:', currentLanguage); // Add logging
     } catch (error) {
         console.error('Error loading languages:', error);
         alert('Dil siyahısını yükləmək mümkün olmadı. Xahiş edirik səhifəni yeniləyin.');
     }
 }
-
-// Load languages when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    // Load saved UI language preference or use default
-    const savedUILang = localStorage.getItem('uiLanguage') || 'az';
-    uiLanguageSelect.value = savedUILang;
-    updateUILanguage(savedUILang);
-    
-    // Load languages for transcription
-    loadLanguages();
-});
-
-// Language selection handler
-languageSelect.addEventListener('change', (e) => {
-    currentLanguage = e.target.value;
-});
 
 // UI Language Handling
 function updateUILanguage(language) {
@@ -467,9 +469,13 @@ async function processAudioFile() {
     try {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('language', currentLanguage || 'az'); // Ensure language is always set
+        
+        // Ensure we're using the selected language, with a more explicit fallback
+        const selectedLanguage = currentLanguage || languageSelect.value;
+        console.log('Sending transcription request with language:', selectedLanguage); // Add logging
+        formData.append('language', selectedLanguage);
 
-        // Use the main transcribe endpoint, not the legacy one
+        // Use the main transcribe endpoint
         const response = await fetch(`${API_BASE_URL}/transcribe/`, {
             method: 'POST',
             body: formData

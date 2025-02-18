@@ -162,16 +162,22 @@ async def transcribe_audio_endpoint(
     Supports multiple languages with Azerbaijani as default.
     """
     try:
+        # Log received language parameter
+        logger.info(f"Received transcription request with language parameter: {language}")
+        
         # Validate language
         try:
             selected_language = Language(language)
-            logger.info(f"Selected language: {selected_language.value}")
+            logger.info(f"Selected language validated: {selected_language.value} ({LANGUAGE_CONFIG[selected_language]['name']})")
         except ValueError:
             logger.warning(f"Invalid language {language}, using default {DEFAULT_LANGUAGE.value}")
             selected_language = DEFAULT_LANGUAGE
 
         # Process audio file
         temp_path = await save_audio_file(file)
+        
+        # Log Whisper API parameters
+        logger.info(f"Calling Whisper API with language_code: {LANGUAGE_CONFIG[selected_language]['whisper_code']}")
         
         # Transcribe with Whisper
         raw_transcript = await transcribe_audio(
