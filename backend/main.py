@@ -146,6 +146,26 @@ async def summarize_audio(file: UploadFile = File(...)):
         logger.error(f"Error in summarization: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Summarization error: {str(e)}")
 
+@app.post("/summarize/")
+async def summarize_text(request: dict):
+    """
+    Endpoint for summarizing text directly.
+    Expects a JSON payload with a 'text' field.
+    """
+    try:
+        if not request.get('text'):
+            raise HTTPException(status_code=400, detail="Text field is required")
+            
+        summary = await generate_summary(request['text'])
+        
+        return JSONResponse({
+            "success": True,
+            "summary": summary
+        })
+    except Exception as e:
+        logger.error(f"Error in text summarization: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Summarization error: {str(e)}")
+
 @app.post("/transcribe-live/")
 async def transcribe_live(file: UploadFile = File(...)):
     """
@@ -225,7 +245,8 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
                 prompt="This is Azerbaijani speech. Please transcribe accurately."
             )
         
-        # Just return the response, logging will be handled in correct_transcript
+        logger.info("=== Raw Whisper Transcript ===")
+        logger.info(response)
         return response
 
     except Exception as e:
@@ -309,32 +330,14 @@ async def correct_transcript(transcript: str) -> str:
         )
         
         corrected_text = response.choices[0].message.content.strip()
+        logger.info("=== Corrected Transcript ===")
+        logger.info(corrected_text)
         
-        # Only log if there are changes
+        # Only log significant changes
         if corrected_text != transcript:
-            # Calculate character difference
-            char_diff = len(corrected_text) - len(transcript)
-            
-            # Calculate word changes
-            original_words = set(transcript.split())
-            corrected_words = set(corrected_text.split())
-            added_words = corrected_words - original_words
-            removed_words = original_words - corrected_words
-            
-            # Log the changes in a structured way
-            logger.info("=== Transcription Results ===")
-            logger.info(f"Raw: {transcript}")
+            logger.info("=== Significant Changes Made ===")
+            logger.info(f"Original: {transcript}")
             logger.info(f"Corrected: {corrected_text}")
-            logger.info(f"Character difference: {char_diff}")
-            
-            if added_words:
-                logger.info(f"Added words: {', '.join(added_words)}")
-            if removed_words:
-                logger.info(f"Removed words: {', '.join(removed_words)}")
-        else:
-            logger.info("=== Transcription Results ===")
-            logger.info(f"Text: {transcript}")
-            logger.info("No corrections needed")
             
         return corrected_text
         

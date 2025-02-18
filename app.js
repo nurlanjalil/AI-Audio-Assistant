@@ -8,7 +8,6 @@ const UPLOAD_ICON = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iN
 
 // Update image src directly with base64 data
 document.getElementById('uploadIcon').src = UPLOAD_ICON;
-document.getElementById('summaryUploadIcon').src = UPLOAD_ICON;
 
 // Global variables
 let mediaRecorder = null;
@@ -17,15 +16,8 @@ let recordingTimer = null;
 let recordingStartTime = null;
 const MAX_RECORDING_TIME = 300; // 5 minutes in seconds
 
-// Add new global variables for summary recording
-let summaryMediaRecorder = null;
-let summaryAudioChunks = [];
-let summaryRecordingTimer = null;
-let summaryRecordingStartTime = null;
-
-// Add new global variables for recorded files
+// Add variable for recorded file
 let currentRecordedFile = null;
-let currentSummaryRecordedFile = null;
 
 // DOM Elements
 const tabButtons = document.querySelectorAll('.tab-button');
@@ -34,21 +26,17 @@ const methodButtons = document.querySelectorAll('.method-button');
 const methodContents = document.querySelectorAll('.method-content');
 
 const dropZone = document.getElementById('dropZone');
-const summaryDropZone = document.getElementById('summaryDropZone');
 const fileInput = document.getElementById('fileInput');
-const summaryFileInput = document.getElementById('summaryFileInput');
 const fileInfo = document.getElementById('fileInfo');
-const summaryFileInfo = document.getElementById('summaryFileInfo');
 const fileName = document.getElementById('fileName');
-const summaryFileName = document.getElementById('summaryFileName');
 const processButton = document.getElementById('processButton');
-const summaryProcessButton = document.getElementById('summaryProcessButton');
 const loadingContainer = document.getElementById('loadingContainer');
 const resultContainer = document.getElementById('resultContainer');
 const transcriptContent = document.getElementById('transcriptContent');
 const summaryContent = document.getElementById('summaryContent');
+const generateSummaryButton = document.getElementById('generateSummaryButton');
+const summarySection = document.getElementById('summarySection');
 const newFileButton = document.getElementById('newFileButton');
-const summarySection = document.querySelector('.summary-section');
 
 const startRecord = document.getElementById('startRecord');
 const stopRecord = document.getElementById('stopRecord');
@@ -56,16 +44,6 @@ const recordIndicator = document.querySelector('.record-indicator');
 const recordTime = document.querySelector('.record-time');
 const recordPreview = document.querySelector('.record-preview');
 const audioPreview = document.getElementById('audioPreview');
-
-// Add new DOM elements
-const summaryMethodButtons = document.querySelectorAll('#summarizer .method-button');
-const summaryMethodContents = document.querySelectorAll('#summarizer .method-content');
-const summaryStartRecord = document.getElementById('summaryStartRecord');
-const summaryStopRecord = document.getElementById('summaryStopRecord');
-const summaryRecordTime = document.querySelector('.summary-record-time');
-const summaryRecordIndicator = document.querySelector('#summary-record-content .record-indicator');
-const summaryRecordPreview = document.querySelector('#summary-record-content .record-preview');
-const summaryAudioPreview = document.getElementById('summaryAudioPreview');
 
 // Tab Handling
 tabButtons.forEach(button => {
@@ -94,9 +72,12 @@ methodButtons.forEach(button => {
     button.addEventListener('click', () => {
         const method = button.dataset.method;
         
+        // Remove active class from all method buttons
         methodButtons.forEach(btn => btn.classList.remove('active'));
+        // Remove active class from all method contents
         methodContents.forEach(content => content.classList.remove('active'));
         
+        // Add active class to clicked button and its corresponding content
         button.classList.add('active');
         document.getElementById(`${method}-content`).classList.add('active');
         
@@ -126,7 +107,7 @@ methodButtons.forEach(button => {
 });
 
 // Drag and Drop Handlers
-[dropZone, summaryDropZone].forEach(zone => {
+[dropZone].forEach(zone => {
     zone.addEventListener('dragover', (e) => {
         e.preventDefault();
         zone.classList.add('drag-over');
@@ -144,33 +125,30 @@ methodButtons.forEach(button => {
         zone.classList.remove('drag-over');
         
         const files = e.dataTransfer.files;
-        const isSummary = zone.id === 'summaryDropZone';
-        handleFileSelection(files[0], isSummary);
+        handleFileSelection(files[0]);
     });
 });
 
 // File Input Handlers
 fileInput.addEventListener('change', (e) => {
-    handleFileSelection(e.target.files[0], false);
-});
-
-summaryFileInput.addEventListener('change', (e) => {
-    handleFileSelection(e.target.files[0], true);
+    handleFileSelection(e.target.files[0]);
 });
 
 // Process Button Handlers
-processButton.addEventListener('click', () => processAudioFile(false));
-summaryProcessButton.addEventListener('click', () => processAudioFile(true));
+processButton.addEventListener('click', () => processAudioFile());
 
 // New File Button Handler
 newFileButton.addEventListener('click', () => {
     resetUI();
     const activeTab = document.querySelector('.tab-button.active').dataset.tab;
     if (activeTab === 'speech-to-text') {
-        document.getElementById('upload-content').classList.add('active');
+        // Reset method buttons and contents
+        methodButtons.forEach(btn => btn.classList.remove('active'));
+        methodContents.forEach(content => content.classList.remove('active'));
+        
+        // Set upload as the default active method
         document.querySelector('[data-method="upload"]').classList.add('active');
-        document.querySelector('[data-method="record"]').classList.remove('active');
-        document.getElementById('record-content').classList.remove('active');
+        document.getElementById('upload-content').classList.add('active');
     }
 });
 
@@ -216,7 +194,7 @@ stopRecord.addEventListener('click', () => {
 });
 
 // File Selection Handler
-function handleFileSelection(file, isSummary) {
+function handleFileSelection(file) {
     if (!file) return;
 
     const validTypes = ['.mp3', '.wav', '.m4a'];
@@ -249,41 +227,28 @@ function handleFileSelection(file, isSummary) {
             }
 
             // Continue with file selection if duration is valid
-            updateUIAfterFileSelection(file, isSummary);
+            updateUIAfterFileSelection(file);
         });
 
         audio.src = objectUrl;
     } else {
-        updateUIAfterFileSelection(file, isSummary);
+        updateUIAfterFileSelection(file);
     }
 }
 
 // Helper function to update UI after file selection
-function updateUIAfterFileSelection(file, isSummary) {
-    if (isSummary) {
-        summaryFileName.textContent = file.name;
-        summaryFileInfo.classList.remove('hidden');
-        summaryDropZone.querySelector('.upload-content').classList.add('hidden');
-        summaryProcessButton.classList.remove('hidden');
-    } else {
-        fileName.textContent = file.name;
-        fileInfo.classList.remove('hidden');
-        dropZone.classList.add('hidden');
-        document.querySelector('.method-selector').classList.add('hidden');
-        document.getElementById('record-content').classList.add('hidden');
-        processButton.classList.remove('hidden');
-    }
+function updateUIAfterFileSelection(file) {
+    fileName.textContent = file.name;
+    fileInfo.classList.remove('hidden');
+    dropZone.classList.add('hidden');
+    document.querySelector('.method-selector').classList.add('hidden');
+    document.getElementById('record-content').classList.add('hidden');
+    processButton.classList.remove('hidden');
 }
 
 // Process Audio File
-async function processAudioFile(isSummary) {
-    let file;
-    
-    if (isSummary) {
-        file = currentSummaryRecordedFile || summaryFileInput.files[0];
-    } else {
-        file = currentRecordedFile || fileInput.files[0];
-    }
+async function processAudioFile() {
+    let file = currentRecordedFile || fileInput.files[0];
     
     if (!file) {
         alert('Xahiş edirik əvvəlcə fayl seçin və ya səs yazın');
@@ -291,13 +256,8 @@ async function processAudioFile(isSummary) {
     }
 
     // Hide file info and show loading
-    if (isSummary) {
-        summaryFileInfo.classList.add('hidden');
-        summaryProcessButton.classList.add('hidden');
-    } else {
-        fileInfo.classList.add('hidden');
-        processButton.classList.add('hidden');
-    }
+    fileInfo.classList.add('hidden');
+    processButton.classList.add('hidden');
     
     loadingContainer.classList.remove('hidden');
     resultContainer.classList.add('hidden');
@@ -306,10 +266,7 @@ async function processAudioFile(isSummary) {
         const formData = new FormData();
         formData.append('file', file);
 
-        // Use the correct endpoints from the API
-        const endpoint = isSummary ? '/summarize-audio/' : '/transcribe-azerbaijani/';
-        
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        const response = await fetch(`${API_BASE_URL}/transcribe-azerbaijani/`, {
             method: 'POST',
             body: formData
         });
@@ -321,15 +278,15 @@ async function processAudioFile(isSummary) {
 
         const data = await response.json();
 
-        // Display results
-        if (isSummary) {
-            transcriptContent.textContent = data.transcript || '';
-            summaryContent.textContent = data.summary || '';
-            summarySection.classList.remove('hidden');
-        } else {
-            transcriptContent.textContent = data.transcript || '';
+        // Update results display
+        transcriptContent.textContent = data.transcript || '';
+        
+        // Ensure summary section is hidden when new transcript is loaded
+        summarySection.classList.remove('visible');
+        setTimeout(() => {
             summarySection.classList.add('hidden');
-        }
+            summaryContent.textContent = '';
+        }, 300);
         
         // Show results
         loadingContainer.classList.add('hidden');
@@ -351,13 +308,8 @@ async function processAudioFile(isSummary) {
         alert(`Xəta: ${errorMessage}`);
         
         // Restore UI on error
-        if (isSummary) {
-            summaryFileInfo.classList.remove('hidden');
-            summaryProcessButton.classList.remove('hidden');
-        } else {
-            fileInfo.classList.remove('hidden');
-            processButton.classList.remove('hidden');
-        }
+        fileInfo.classList.remove('hidden');
+        processButton.classList.remove('hidden');
         loadingContainer.classList.add('hidden');
     }
 }
@@ -434,151 +386,83 @@ function updateRecordingTime() {
     }
 }
 
-// Add method button handlers for summary tab
-summaryMethodButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        const method = button.dataset.method;
-        
-        summaryMethodButtons.forEach(btn => btn.classList.remove('active'));
-        summaryMethodContents.forEach(content => content.classList.remove('active'));
-        
-        button.classList.add('active');
-        document.getElementById(`${method}-content`).classList.add('active');
-        
-        // Reset UI when switching methods
-        resetSummaryUI();
-    });
-});
+// Add Generate Summary Button Handler
+generateSummaryButton.addEventListener('click', async () => {
+    const transcript = transcriptContent.textContent;
+    if (!transcript) {
+        alert('Xahiş edirik əvvəlcə audio faylı mətnə çevirin');
+        return;
+    }
 
-// Add recording handlers for summary tab
-summaryStartRecord.addEventListener('click', async () => {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                sampleRate: 48000,
-                sampleSize: 16,
-                channelCount: 1,
-                echoCancellation: false,
-                noiseSuppression: false,
-                autoGainControl: false,
-                latency: 0
-            }
+        loadingContainer.classList.remove('hidden');
+        generateSummaryButton.disabled = true;
+        summarySection.classList.remove('visible');
+        summaryContent.innerHTML = ''; // Clear previous content
+
+        const response = await fetch(`${API_BASE_URL}/summarize/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                text: transcript
+            })
         });
-        startSummaryRecording(stream);
+
+        const data = await response.json(); // Get response data first
+
+        if (!response.ok) {
+            // If we have a specific error message from the server, use it
+            throw new Error(data.detail || data.message || 'Failed to generate summary');
+        }
+
+        if (!data.summary) {
+            throw new Error('No summary data received from server');
+        }
         
-        summaryStartRecord.disabled = true;
-        summaryStopRecord.disabled = false;
-        summaryRecordIndicator.classList.remove('hidden');
-        summaryStartRecord.classList.add('recording');
-        summaryRecordPreview.classList.add('hidden');
-        summaryProcessButton.classList.add('hidden');
-        
-        summaryRecordingStartTime = Date.now();
-        summaryRecordingTimer = setInterval(updateSummaryRecordingTime, 1000);
+        // Show summary section with content
+        summaryContent.textContent = data.summary;
+        summarySection.classList.remove('hidden');
+        // Use setTimeout to ensure smooth transition
+        setTimeout(() => {
+            summarySection.classList.add('visible');
+        }, 10);
+
     } catch (error) {
-        console.error('Error accessing microphone:', error);
-        alert('Mikrofona çıxış xətası. Xahiş edirik mikrofon icazələrinin verildiyindən əmin olun.');
+        console.error('Error generating summary:', error);
+        // Show error message in summary section
+        summarySection.classList.remove('hidden');
+        summaryContent.innerHTML = `
+            <div class="summary-error">
+                ${error.message === 'Failed to fetch' 
+                    ? 'Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.'
+                    : 'Xülasə yaratmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.'}
+            </div>
+        `;
+        setTimeout(() => {
+            summarySection.classList.add('visible');
+        }, 10);
+    } finally {
+        loadingContainer.classList.add('hidden');
+        generateSummaryButton.disabled = false;
     }
 });
-
-summaryStopRecord.addEventListener('click', () => {
-    stopSummaryRecording();
-    summaryStartRecord.disabled = false;
-    summaryStopRecord.disabled = true;
-    summaryRecordIndicator.classList.add('hidden');
-    summaryStartRecord.classList.remove('recording');
-    clearInterval(summaryRecordingTimer);
-    summaryRecordTime.textContent = '00:00';
-});
-
-// Add recording functions for summary tab
-function startSummaryRecording(stream) {
-    summaryAudioChunks = [];
-    
-    // Create an AudioContext for processing
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioContext.createMediaStreamSource(stream);
-    
-    // Create and configure a high-pass filter
-    const highPassFilter = audioContext.createBiquadFilter();
-    highPassFilter.type = 'highpass';
-    highPassFilter.frequency.value = 80; // Remove very low frequencies
-    
-    // Create and configure a low-pass filter
-    const lowPassFilter = audioContext.createBiquadFilter();
-    lowPassFilter.type = 'lowpass';
-    lowPassFilter.frequency.value = 20000; // Remove very high frequencies
-    
-    // Connect the audio processing chain
-    source.connect(highPassFilter);
-    highPassFilter.connect(lowPassFilter);
-    
-    // Create a destination node to capture the processed audio
-    const destination = audioContext.createMediaStreamDestination();
-    lowPassFilter.connect(destination);
-    
-    // Initialize MediaRecorder with the processed stream
-    summaryMediaRecorder = new MediaRecorder(destination.stream, {
-        mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 128000 // Set higher bitrate for better quality
-    });
-
-    summaryMediaRecorder.addEventListener('dataavailable', event => {
-        summaryAudioChunks.push(event.data);
-    });
-
-    summaryMediaRecorder.addEventListener('stop', () => {
-        const audioBlob = new Blob(summaryAudioChunks, { type: 'audio/wav' });
-        currentSummaryRecordedFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
-        
-        const audioUrl = URL.createObjectURL(audioBlob);
-        summaryAudioPreview.src = audioUrl;
-        summaryRecordPreview.classList.remove('hidden');
-        
-        // Stop all tracks and close audio context
-        stream.getTracks().forEach(track => track.stop());
-        audioContext.close();
-    });
-
-    summaryMediaRecorder.start(100);
-}
-
-function stopSummaryRecording() {
-    if (summaryMediaRecorder && summaryMediaRecorder.state !== 'inactive') {
-        summaryMediaRecorder.stop();
-    }
-}
-
-function updateSummaryRecordingTime() {
-    const elapsed = Math.floor((Date.now() - summaryRecordingStartTime) / 1000);
-    const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
-    const seconds = (elapsed % 60).toString().padStart(2, '0');
-    summaryRecordTime.textContent = `${minutes}:${seconds}`;
-
-    if (elapsed >= MAX_RECORDING_TIME) {
-        summaryStopRecord.click();
-        alert('Maksimum yazılma müddəti 5 dəqiqədir.');
-    }
-}
 
 // Reset UI
 function resetUI() {
     fileInput.value = '';
-    summaryFileInput.value = '';
     fileName.textContent = '';
-    summaryFileName.textContent = '';
     fileInfo.classList.add('hidden');
-    summaryFileInfo.classList.add('hidden');
     loadingContainer.classList.add('hidden');
     resultContainer.classList.add('hidden');
     transcriptContent.textContent = '';
     summaryContent.textContent = '';
     processButton.classList.add('hidden');
-    summaryProcessButton.classList.add('hidden');
     
     // Show upload areas again
     dropZone.classList.remove('hidden');
-    summaryDropZone.querySelector('.upload-content').classList.remove('hidden');
     document.querySelector('.method-selector').classList.remove('hidden');
     
     // Reset recording UI
@@ -594,22 +478,12 @@ function resetUI() {
     clearInterval(recordingTimer);
     recordTime.textContent = '00:00';
     
-    // Reset summary recording UI
-    if (summaryMediaRecorder && summaryMediaRecorder.state !== 'inactive') {
-        stopSummaryRecording();
-    }
-    summaryStartRecord.disabled = false;
-    summaryStopRecord.disabled = true;
-    summaryRecordIndicator.classList.add('hidden');
-    summaryStartRecord.classList.remove('recording');
-    summaryRecordPreview.classList.add('hidden');
-    summaryAudioPreview.src = '';
-    clearInterval(summaryRecordingTimer);
-    summaryRecordTime.textContent = '00:00';
-    
-    // Clear recorded files
-    currentRecordedFile = null;
-    currentSummaryRecordedFile = null;
+    // Reset summary section
+    summarySection.classList.remove('visible');
+    setTimeout(() => {
+        summarySection.classList.add('hidden');
+        summaryContent.textContent = '';
+    }, 300); // Match transition duration
 }
 
 // Copy Button Handlers
@@ -631,7 +505,6 @@ document.querySelectorAll('.copy-button').forEach(button => {
 // Add click handlers for the new preview process buttons
 document.querySelectorAll('.preview-process-button').forEach(button => {
     button.addEventListener('click', () => {
-        const isSummary = button.closest('#summarizer') !== null;
-        processAudioFile(isSummary);
+        processAudioFile();
     });
 }); 
