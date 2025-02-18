@@ -14,12 +14,18 @@ import httpx
 
 # Configure detailed logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout)
     ]
 )
+
+# Set specific loggers to higher levels to reduce noise
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 
 # Load environment variables
@@ -84,24 +90,15 @@ async def transcribe_azerbaijani(
     Endpoint for Azerbaijani speech-to-text conversion.
     Supports both uploaded files and live recordings.
     """
-    logger.info(f"Received Azerbaijani transcription request: {file.filename}")
-    logger.info(f"Live recording: {live_recording}")
-    logger.info(f"File size: {file.size} bytes")
-    logger.info(f"Content type: {file.content_type}")
-    
     try:
         # Process audio file
         temp_path = await save_audio_file(file)
         
         # Transcribe with Whisper
-        logger.info("Starting Whisper transcription")
         raw_transcript = await transcribe_audio(temp_path, "azerbaijani")
-        logger.info("Whisper transcription completed")
         
         # Correct the transcript
-        logger.info("Starting transcript correction")
         corrected_transcript = await correct_transcript(raw_transcript)
-        logger.info("Transcript correction completed")
         
         # Cleanup
         if os.path.exists(temp_path):
@@ -113,7 +110,7 @@ async def transcribe_azerbaijani(
             "language": "azerbaijani"
         })
     except Exception as e:
-        logger.error(f"Error in Azerbaijani transcription: {str(e)}", exc_info=True)
+        logger.error(f"Error in transcription: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
 
 @app.post("/summarize-audio/")
@@ -228,12 +225,12 @@ async def transcribe_audio(file_path: str, language: Optional[str] = None) -> st
                 prompt="This is Azerbaijani speech. Please transcribe accurately."
             )
         
-        logger.info("Raw transcription completed successfully")
-        logger.info(f"Raw transcript: {response[:200]}...") # Log first 200 chars
+        logger.info("=== Raw Whisper Transcript ===")
+        logger.info(response)
         return response
 
     except Exception as e:
-        logger.error(f"Error in transcription: {str(e)}", exc_info=True)
+        logger.error(f"Transcription error: {str(e)}")
         raise e
 
 async def generate_summary(transcript: str) -> str:
@@ -278,9 +275,6 @@ async def correct_transcript(transcript: str) -> str:
     Correct the transcribed text using GPT-4o to fix any voice-to-text errors and improve formatting.
     """
     try:
-        logger.info("Starting transcript correction")
-        logger.info(f"Input transcript: {transcript[:200]}...") # Log first 200 chars
-        
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -311,38 +305,24 @@ async def correct_transcript(transcript: str) -> str:
                     "content": f"Correct and format this voice-to-text transcription:\n\n{transcript}"
                 }
             ],
-            temperature=0.3,  # Lower temperature for more consistent corrections
-            max_tokens=2000   # Increased token limit for longer texts
+            temperature=0.3,
+            max_tokens=2000
         )
         
         corrected_text = response.choices[0].message.content.strip()
+        logger.info("=== Corrected Transcript ===")
+        logger.info(corrected_text)
         
-        logger.info("Transcript correction completed")
-        logger.info(f"Corrected transcript: {corrected_text[:200]}...") # Log first 200 chars
-        
-        # Log detailed comparison
-        logger.info("Transcript Comparison:")
-        logger.info("Original length: %d characters", len(transcript))
-        logger.info("Corrected length: %d characters", len(corrected_text))
-        logger.info("Character difference: %d", len(corrected_text) - len(transcript))
-        
-        # Log word-level changes
-        original_words = set(transcript.split())
-        corrected_words = set(corrected_text.split())
-        added_words = corrected_words - original_words
-        removed_words = original_words - corrected_words
-        
-        if added_words:
-            logger.info(f"Added words: {', '.join(added_words)}")
-        if removed_words:
-            logger.info(f"Removed words: {', '.join(removed_words)}")
+        # Only log significant changes
+        if corrected_text != transcript:
+            logger.info("=== Significant Changes Made ===")
+            logger.info(f"Original: {transcript}")
+            logger.info(f"Corrected: {corrected_text}")
             
         return corrected_text
         
     except Exception as e:
-        logger.error(f"Correction error: {str(e)}", exc_info=True)
-        logger.error(f"Original transcript length: {len(transcript)}")
-        logger.error(f"Original transcript preview: {transcript[:200]}...")
+        logger.error(f"Correction error: {str(e)}")
         raise e
 
 
