@@ -3,11 +3,46 @@ const API_BASE_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:8000'
     : 'https://ai-podcast-summarizer.onrender.com';
 
+// Maintenance Mode Configuration
+const MAINTENANCE_MODE = true; // Set to false to re-enable the app
+
 // Base64 encoded upload icon (simple cloud upload icon)
 const UPLOAD_ICON = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMyIDEyVjQwTTMyIDEyTDIwIDI0TTMyIDEyTDQ0IDI0IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik01NiAzNlY1Mkg4VjM2IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPg==`;
 
 // Update image src directly with base64 data
 document.getElementById('uploadIcon').src = UPLOAD_ICON;
+
+// Maintenance Mode Handler
+function handleMaintenanceMode() {
+    if (MAINTENANCE_MODE) {
+        // Update UI elements with current language translations
+        const maintenanceTitle = document.querySelector('[data-translate="maintenanceTitle"]');
+        const maintenanceMessage = document.querySelector('[data-translate="maintenanceMessage"]');
+        const maintenanceSupport = document.querySelector('[data-translate="maintenanceSupport"]');
+        const supportUs = document.querySelector('[data-translate="supportUs"]');
+        const contactUs = document.querySelector('[data-translate="contactUs"]');
+        const maintenanceFooter = document.querySelector('[data-translate="maintenanceFooter"]');
+        
+        if (maintenanceTitle) maintenanceTitle.textContent = translations[currentUILanguage]?.maintenanceTitle || translations.az.maintenanceTitle;
+        if (maintenanceMessage) maintenanceMessage.textContent = translations[currentUILanguage]?.maintenanceMessage || translations.az.maintenanceMessage;
+        if (maintenanceSupport) maintenanceSupport.textContent = translations[currentUILanguage]?.maintenanceSupport || translations.az.maintenanceSupport;
+        if (supportUs) supportUs.textContent = translations[currentUILanguage]?.supportUs || translations.az.supportUs;
+        if (contactUs) contactUs.textContent = translations[currentUILanguage]?.contactUs || translations.az.contactUs;
+        if (maintenanceFooter) maintenanceFooter.textContent = translations[currentUILanguage]?.maintenanceFooter || translations.az.maintenanceFooter;
+        
+        // Show maintenance modal
+        const maintenanceModal = document.getElementById('maintenance-modal');
+        if (maintenanceModal) {
+            maintenanceModal.style.display = 'flex';
+        }
+    } else {
+        // Hide maintenance modal if maintenance mode is disabled
+        const maintenanceModal = document.getElementById('maintenance-modal');
+        if (maintenanceModal) {
+            maintenanceModal.style.display = 'none';
+        }
+    }
+}
 
 // UI Translations
 const translations = {
@@ -15,6 +50,12 @@ const translations = {
         support: "Dəstək ol",
         title: "AI Audio Assistenti",
         subtitle: "Səsi mətnə çevir və AI ilə xülasə et",
+        maintenanceTitle: "Müvəqqəti Texniki Fasilə",
+        maintenanceMessage: "Hörmətli istifadəçilər,\n\nAI Audio Assistenti hazırda müvəqqəti olaraq dayandırılıb. Xidmətimiz monetizasiya olunmadığı üçün bəzi istifadəçilərin həddindən artıq istifadəsi əlavə xərclərə səbəb olur. Davamlı fəaliyyət üçün dəstəyiniz vacibdir.",
+        maintenanceSupport: "Platformanın açıq qalmasına dəstək olmaq istəyirsinizsə:",
+        maintenanceFooter: "Təşəkkür edirik! 🚀",
+        supportUs: "Dəstək ol",
+        contactUs: "Bizimlə əlaqə",
         selectTranscriptionLanguage: "Transkripsiya dili:",
         speechToText: "Səsi mətnə çevir",
         uploadAudio: "Audio Yüklə",
@@ -44,12 +85,19 @@ const translations = {
         transcribeFirst: "Xahiş edirik əvvəlcə audio faylı mətnə çevirin",
         connectionError: "Serverə qoşulmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.",
         summaryError: "Xülasə yaratmaq mümkün olmadı. Xahiş edirik bir az sonra yenidən cəhd edin.",
-        loadLanguagesError: "Dil siyahısını yükləmək mümkün olmadı. Xahiş edirik səhifəni yeniləyin."
+        loadLanguagesError: "Dil siyahısını yükləmək mümkün olmadı. Xahiş edirik səhifəni yeniləyin.",
+        emailCopied: "Email kopyalandı!"
     },
     en: {
         support: "Support",
         title: "AI Audio Assistant",
         subtitle: "Convert speech to text and summarize with AI",
+        maintenanceTitle: "Temporary Maintenance",
+        maintenanceMessage: "Dear users,\n\nAI Audio Assistant is temporarily paused. As our service is not monetized, excessive usage by some users leads to additional costs. Your support is crucial for continued operation.",
+        maintenanceSupport: "If you'd like to support keeping the platform open:",
+        maintenanceFooter: "Thank you! 🚀",
+        supportUs: "Support Us",
+        contactUs: "Contact Us",
         selectTranscriptionLanguage: "Transcription language:",
         speechToText: "Speech to Text",
         uploadAudio: "Upload Audio",
@@ -79,12 +127,19 @@ const translations = {
         transcribeFirst: "Please transcribe the audio file first",
         connectionError: "Could not connect to server. Please try again later.",
         summaryError: "Could not generate summary. Please try again later.",
-        loadLanguagesError: "Error loading languages. Please try again later."
+        loadLanguagesError: "Error loading languages. Please try again later.",
+        emailCopied: "Email copied!"
     },
     ru: {
-        support: "Поддержка",
+        support: "Поддержать",
         title: "AI Аудио Ассистент",
         subtitle: "Преобразуйте речь в текст и создайте резюме с помощью ИИ",
+        maintenanceTitle: "Временное Обслуживание",
+        maintenanceMessage: "Уважаемые пользователи,\n\nAI Аудио Ассистент временно приостановлен. Поскольку наш сервис не монетизирован, чрезмерное использование некоторыми пользователями приводит к дополнительным расходам. Ваша поддержка необходима для продолжения работы.",
+        maintenanceSupport: "Если вы хотите поддержать работу платформы:",
+        maintenanceFooter: "Спасибо! 🚀",
+        supportUs: "Поддержать нас",
+        contactUs: "Связаться с нами",
         selectTranscriptionLanguage: "Язык транскрипции:",
         speechToText: "Речь в текст",
         uploadAudio: "Загрузить аудио",
@@ -114,7 +169,8 @@ const translations = {
         transcribeFirst: "Пожалуйста, сначала преобразуйте аудиофайл в текст",
         connectionError: "Не удалось подключиться к серверу. Пожалуйста, попробуйте позже.",
         summaryError: "Не удалось создать резюме. Пожалуйста, попробуйте позже.",
-        loadLanguagesError: "Ошибка загрузки языков. Пожалуйста, попробуйте позже."
+        loadLanguagesError: "Ошибка загрузки языков. Пожалуйста, попробуйте позже.",
+        emailCopied: "Email скопирован!"
     }
 };
 
@@ -238,6 +294,13 @@ methodButtons.forEach(button => {
         e.preventDefault();
         zone.classList.remove('drag-over');
         
+        // Check if in maintenance mode
+        if (MAINTENANCE_MODE) {
+            // Show maintenance modal again if it's not visible
+            handleMaintenanceMode();
+            return;
+        }
+        
         const files = e.dataTransfer.files;
         handleFileSelection(files[0]);
     });
@@ -245,6 +308,13 @@ methodButtons.forEach(button => {
 
 // File Input Handlers
 fileInput.addEventListener('change', (e) => {
+    // Check if in maintenance mode
+    if (MAINTENANCE_MODE) {
+        // Show maintenance modal again if it's not visible
+        handleMaintenanceMode();
+        return;
+    }
+    
     handleFileSelection(e.target.files[0]);
 });
 
@@ -268,6 +338,13 @@ newFileButton.addEventListener('click', () => {
 
 // Recording Handlers
 startRecord.addEventListener('click', async () => {
+    // Check if in maintenance mode
+    if (MAINTENANCE_MODE) {
+        // Show maintenance modal again if it's not visible
+        handleMaintenanceMode();
+        return;
+    }
+    
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
@@ -388,6 +465,41 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load languages for transcription
     loadTranscriptionLanguages();
+    
+    // Handle maintenance mode
+    handleMaintenanceMode();
+    
+    // Add email copy functionality
+    const copyEmailButton = document.getElementById('copyEmailButton');
+    if (copyEmailButton) {
+        copyEmailButton.addEventListener('click', () => {
+            const email = 'jalilnurlan@gmail.com';
+            navigator.clipboard.writeText(email).then(() => {
+                const contactUsSpan = copyEmailButton.querySelector('[data-translate="contactUs"]');
+                const originalText = contactUsSpan.textContent;
+                contactUsSpan.textContent = translations[currentUILanguage]?.emailCopied || 'Email kopyalandı!';
+                setTimeout(() => {
+                    contactUsSpan.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Could not copy email: ', err);
+                // Fallback for browsers that don't support clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = email;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const contactUsSpan = copyEmailButton.querySelector('[data-translate="contactUs"]');
+                const originalText = contactUsSpan.textContent;
+                contactUsSpan.textContent = translations[currentUILanguage]?.emailCopied || 'Email kopyalandı!';
+                setTimeout(() => {
+                    contactUsSpan.textContent = originalText;
+                }, 2000);
+            });
+        });
+    }
 });
 
 // UI Language Selection with Flags
@@ -400,6 +512,11 @@ flagButtons.forEach(button => {
         localStorage.setItem('uiLanguage', lang);
         updateUILanguage(lang);
         setActiveFlag(lang);
+        
+        // Update maintenance mode if active
+        if (MAINTENANCE_MODE) {
+            handleMaintenanceMode();
+        }
         
         console.log('UI Language changed via flag:', {
             newLanguage: lang,
@@ -422,8 +539,9 @@ function setActiveFlag(lang) {
 // Update UI Language
 function updateUILanguage(language) {
     currentUILanguage = language;
+    localStorage.setItem('uiLanguage', language);
     const t = translations[language] || translations.az;
-
+    
     // Update all elements with data-translate attribute
     document.querySelectorAll('[data-translate]').forEach(element => {
         const key = element.getAttribute('data-translate');
@@ -435,15 +553,29 @@ function updateUILanguage(language) {
             }
         }
     });
-
+    
     // Update document language
     document.documentElement.lang = language;
+    
+    // Set active flag
+    setActiveFlag(language);
+    
+    // Update maintenance mode translations if in maintenance mode
+    if (MAINTENANCE_MODE) {
+        handleMaintenanceMode();
+    }
 }
 
 // Transcription Language Handling
 async function loadTranscriptionLanguages() {
+    // Check if in maintenance mode
+    if (MAINTENANCE_MODE) {
+        // Don't load languages in maintenance mode
+        return;
+    }
+    
     try {
-        const response = await fetch(`${API_BASE_URL}/languages`);
+        const response = await fetch(`${API_BASE_URL}/languages/`);
         const data = await response.json();
         
         // Clear existing options
@@ -493,6 +625,13 @@ languageSelect.addEventListener('change', (e) => {
 
 // Process Audio File
 async function processAudioFile() {
+    // Check if in maintenance mode
+    if (MAINTENANCE_MODE) {
+        // Show maintenance modal again if it's not visible
+        handleMaintenanceMode();
+        return;
+    }
+    
     let file = currentRecordedFile || fileInput.files[0];
     
     if (!file) {
@@ -706,6 +845,13 @@ function updateRecordingTime() {
 
 // Add Generate Summary Button Handler
 generateSummaryButton.addEventListener('click', async () => {
+    // Check if in maintenance mode
+    if (MAINTENANCE_MODE) {
+        // Show maintenance modal again if it's not visible
+        handleMaintenanceMode();
+        return;
+    }
+    
     const transcript = transcriptContent.textContent;
     const t = translations[currentLanguage] || translations.az;
 
